@@ -2,6 +2,7 @@ package com.moonlight.project.airBnbApp.controller;
 
 import com.moonlight.project.airBnbApp.dto.HotelDto;
 import com.moonlight.project.airBnbApp.dto.HotelInfoDto;
+import com.moonlight.project.airBnbApp.dto.HotelPriceDto;
 import com.moonlight.project.airBnbApp.dto.HotelSearchRequest;
 import com.moonlight.project.airBnbApp.service.HotelService;
 import com.moonlight.project.airBnbApp.service.InventoryService;
@@ -22,9 +23,9 @@ public class HotelBrowseController {
     private final HotelService hotelService;
 
     @GetMapping("/Search")
-    public ResponseEntity<List<HotelDto>> searchHotels(@RequestBody HotelSearchRequest hotelSearchRequest) {
+    public ResponseEntity<List<HotelPriceDto>> searchHotels(@RequestBody HotelSearchRequest hotelSearchRequest) {
 
-        Page<HotelDto> page = inventoryService.searchHotels(hotelSearchRequest);
+        var page = inventoryService.searchHotels(hotelSearchRequest);
         return ResponseEntity.ok(page.getContent());
     }
 
