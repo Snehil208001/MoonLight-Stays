@@ -5,8 +5,12 @@ import com.moonlight.project.airBnbApp.dto.HotelInfoDto;
 import com.moonlight.project.airBnbApp.dto.RoomDto;
 import com.moonlight.project.airBnbApp.entity.Hotel;
 import com.moonlight.project.airBnbApp.entity.Room;
+import com.moonlight.project.airBnbApp.entity.User;
 import com.moonlight.project.airBnbApp.exception.ResourceNotFoundException;
+import com.moonlight.project.airBnbApp.exception.UnAuthorisedExceptions;
 import com.moonlight.project.airBnbApp.repository.HotelRepository;
+import com.moonlight.project.airBnbApp.repository.RoomRepository;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,12 +28,17 @@ public class HotelServiceImpl implements HotelService {
     private final HotelRepository hotelRepository;
     private final ModelMapper modelMapper;
     private final InventoryService inventoryService;
+    private final RoomRepository roomRepository; // Added this injection
 
     @Override
     public HotelDto createNewHotel(HotelDto hotelDto) {
         log.info("creating a new hotel with name: {}", hotelDto.getName());
-        Hotel hotel = modelMapper.map(hotelDto,Hotel.class);
+        Hotel hotel = modelMapper.map(hotelDto, Hotel.class);
         hotel.setActive(false);
+
+        User currentUser = getCurrentUser();
+        hotel.setOwner(currentUser);
+
         hotel = hotelRepository.save(hotel);
         log.info("created a new hotel with ID: {}", hotelDto.getId());
         return modelMapper.map(hotel, HotelDto.class);
@@ -50,7 +59,7 @@ public class HotelServiceImpl implements HotelService {
         Hotel hotel = hotelRepository
                 .findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Hotel not found with ID: "+ id));
-        return modelMapper.map(hotel,HotelDto.class);
+        return modelMapper.map(hotel, HotelDto.class);
     }
 
     @Override
@@ -60,11 +69,20 @@ public class HotelServiceImpl implements HotelService {
                 .findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Hotel not found with ID: "+ id));
 
+        checkOwnership(hotel);
+
         hotelDto.setId(id);
 
-        modelMapper.map(hotelDto,hotel);
+        User owner = hotel.getOwner();
+        Boolean isActive = hotel.getActive();
+
+        modelMapper.map(hotelDto, hotel);
+
+        hotel.setOwner(owner);
+        hotel.setActive(isActive);
+
         hotel = hotelRepository.save(hotel);
-        return modelMapper.map(hotel,HotelDto.class);
+        return modelMapper.map(hotel, HotelDto.class);
     }
 
     @Override
@@ -74,9 +92,12 @@ public class HotelServiceImpl implements HotelService {
                 .findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Hotel not found with ID: "+ id));
 
-        // FIX: Must delete inventory (children) BEFORE deleting the hotel (parent)
+        checkOwnership(hotel);
+
+        // Correctly delete all inventories AND rooms to prevent Foreign Key crashes
         for (Room room: hotel.getRooms()) {
-            inventoryService.deleteFutureInventories(room);
+            inventoryService.deleteAllInventories(room);
+            roomRepository.delete(room);
         }
 
         hotelRepository.deleteById(id);
@@ -90,24 +111,35 @@ public class HotelServiceImpl implements HotelService {
                 .findById(hotelId)
                 .orElseThrow(() -> new ResourceNotFoundException("Hotel not found with ID: "+ hotelId));
 
+        checkOwnership(hotel);
+
         hotel.setActive(true);
 
-        // FIX: Explicitly save the hotel to ensure the DB update happens
         hotelRepository.save(hotel);
-
-        // Inventory is already created in RoomServiceImpl, so we don't need to loop here.
     }
 
     @Override
+    @Transactional
     public HotelInfoDto getHotelInfoById(Long hotelId) {
         Hotel hotel = hotelRepository
                 .findById(hotelId)
                 .orElseThrow(() -> new ResourceNotFoundException("Hotel not found with ID: "+ hotelId));
         List<RoomDto> room = hotel.getRooms()
                 .stream()
-                .map((element) -> modelMapper.map(element,RoomDto.class))
+                .map((element) -> modelMapper.map(element, RoomDto.class))
                 .toList();
 
-        return new HotelInfoDto(modelMapper.map(hotel,HotelDto.class),room);
+        return new HotelInfoDto(modelMapper.map(hotel, HotelDto.class), room);
+    }
+
+    private User getCurrentUser() {
+        return (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+    }
+
+    private void checkOwnership(Hotel hotel) {
+        User currentUser = getCurrentUser();
+        if (hotel.getOwner() == null || !hotel.getOwner().getId().equals(currentUser.getId())) {
+            throw new UnAuthorisedExceptions("You do not have permission to modify this hotel as you are not the owner.");
+        }
     }
 }

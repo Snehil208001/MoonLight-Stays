@@ -3,12 +3,15 @@ package com.moonlight.project.airBnbApp.service;
 import com.moonlight.project.airBnbApp.dto.RoomDto;
 import com.moonlight.project.airBnbApp.entity.Hotel;
 import com.moonlight.project.airBnbApp.entity.Room;
+import com.moonlight.project.airBnbApp.entity.User;
 import com.moonlight.project.airBnbApp.exception.ResourceNotFoundException;
+import com.moonlight.project.airBnbApp.exception.UnAuthorisedExceptions;
 import com.moonlight.project.airBnbApp.repository.HotelRepository;
 import com.moonlight.project.airBnbApp.repository.RoomRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,16 +29,22 @@ public class RoomServiceImpl implements RoomService {
     private final ModelMapper modelMapper;
 
     @Override
+    @Transactional
     public RoomDto createNewRoom(Long hotelId, RoomDto roomDto) {
         log.info("Creating a new room in hotel with ID: {}", hotelId);
         Hotel hotel = hotelRepository
                 .findById(hotelId)
                 .orElseThrow(() -> new ResourceNotFoundException("Hotel not found with ID: "+ hotelId));
+
+        // Check Ownership before allowing room creation
+        if (!hotel.getOwner().getId().equals(getCurrentUser().getId())) {
+            throw new UnAuthorisedExceptions("You do not own this hotel and cannot add rooms to it.");
+        }
+
         Room room = modelMapper.map(roomDto, Room.class);
         room.setHotel(hotel);
         room = roomRepository.save(room);
 
-        // FIX: Always initialize inventory, regardless of whether the hotel is active or not
         inventoryService.initializeRoomForAYear(room);
 
         return modelMapper.map(room,RoomDto.class);
@@ -69,10 +78,19 @@ public class RoomServiceImpl implements RoomService {
                 .findById(roomId)
                 .orElseThrow(() -> new ResourceNotFoundException("Room not found with ID: "+ roomId));
 
+        // Check Ownership before allowing room deletion
+        if (!room.getHotel().getOwner().getId().equals(getCurrentUser().getId())) {
+            throw new UnAuthorisedExceptions("You do not own the hotel this room belongs to.");
+        }
+
         // 1. Delete ALL inventories first (Children)
         inventoryService.deleteAllInventories(room);
 
         // 2. Then delete the room (Parent)
         roomRepository.deleteById(roomId);
+    }
+
+    private User getCurrentUser() {
+        return (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
     }
 }

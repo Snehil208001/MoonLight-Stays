@@ -20,6 +20,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -31,15 +33,20 @@ public class InventoryServiceImpl implements InventoryService {
     private final HotelMinPriceRepository hotelMinPriceRepository;
 
     @Override
+    @Transactional
     public void initializeRoomForAYear(Room room) {
         LocalDate today = LocalDate.now();
         LocalDate endDate = today.plusYears(1);
+
+        // Use a list to save all at once instead of 365 separate DB queries
+        List<Inventory> inventoryList = new ArrayList<>();
+
         for (; today.isBefore(endDate); today = today.plusDays(1)){
             Inventory inventory = Inventory.builder()
                     .hotel(room.getHotel())
                     .room(room)
                     .bookedCount(0)
-                    .reservedCount(0) // <--- FIX: Added this field to prevent null error
+                    .reservedCount(0)
                     .city(room.getHotel().getCity())
                     .date(today)
                     .price(room.getBasePrice())
@@ -47,8 +54,11 @@ public class InventoryServiceImpl implements InventoryService {
                     .totalCount(room.getTotalCount())
                     .closed(false)
                     .build();
-            inventoryRepository.save(inventory);
+            inventoryList.add(inventory);
         }
+
+        // Save all records in one batch
+        inventoryRepository.saveAll(inventoryList);
     }
 
     @Override
@@ -70,13 +80,8 @@ public class InventoryServiceImpl implements InventoryService {
         log.info("Searching hotels for {} city, from {} to {}", hotelSearchRequest.getCity(),hotelSearchRequest.getCheckInDate(),hotelSearchRequest.getEndDate());
         Pageable pageable = PageRequest.of(hotelSearchRequest.getPage(), hotelSearchRequest.getSize());
 
-        // Calculate the number of nights
         long dateCount = ChronoUnit.DAYS.between(hotelSearchRequest.getCheckInDate(), hotelSearchRequest.getEndDate());
 
-        // Note: We subtract 1 day from endDate because inventory is needed for the night of stay,
-        // but not for the checkout date itself.
-
-        //business logic = 90 days
         Page<HotelPriceDto> hotelPage = hotelMinPriceRepository.findHotelsWithAvailableInventory(
                 hotelSearchRequest.getCity(),
                 hotelSearchRequest.getCheckInDate(),
@@ -86,6 +91,6 @@ public class InventoryServiceImpl implements InventoryService {
                 pageable
         );
 
-            return hotelPage;
+        return hotelPage;
     }
 }

@@ -1,14 +1,21 @@
 package com.moonlight.project.airBnbApp.advice;
 
 import com.moonlight.project.airBnbApp.exception.ResourceNotFoundException;
+import com.moonlight.project.airBnbApp.exception.UnAuthorisedExceptions;
+import io.jsonwebtoken.JwtException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -22,7 +29,77 @@ public class GlobalExceptionHandler {
         return buildErrorResponseEntity(apiError);
     }
 
-    // NEW: Handle unsupported media type (e.g. sending text/plain instead of application/json)
+    // --- NEW: Handle Business Logic Exceptions (Booking states, inactive hotels, etc.) ---
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ApiResponse<?>> handleIllegalStateException(IllegalStateException exception) {
+        ApiError apiError = ApiError.builder()
+                .status(HttpStatus.BAD_REQUEST)
+                .message(exception.getMessage())
+                .build();
+        return buildErrorResponseEntity(apiError);
+    }
+
+    // --- NEW: Handle DTO Validation Errors (@Valid annotations) ---
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ApiResponse<?>> handleInputValidationErrors(MethodArgumentNotValidException exception) {
+        // Collect all validation errors into a list of strings
+        List<String> validationErrors = exception.getBindingResult()
+                .getFieldErrors()
+                .stream()
+                .map(error -> error.getField() + ": " + error.getDefaultMessage())
+                .collect(Collectors.toList());
+
+        ApiError apiError = ApiError.builder()
+                .status(HttpStatus.BAD_REQUEST)
+                .message("Input Validation Failed")
+                .subErrors(validationErrors)
+                .build();
+        return buildErrorResponseEntity(apiError);
+    }
+
+    // --- Handle Custom Ownership/Authorization Checks ---
+    @ExceptionHandler(UnAuthorisedExceptions.class)
+    public ResponseEntity<ApiResponse<?>> handleUnAuthorisedException(UnAuthorisedExceptions exception) {
+        ApiError apiError = ApiError.builder()
+                .status(HttpStatus.FORBIDDEN)
+                .message(exception.getMessage())
+                .build();
+        return buildErrorResponseEntity(apiError);
+    }
+
+    // --- Handle Spring Security Role Issues ---
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ApiResponse<?>> handleAccessDeniedException(AccessDeniedException exception) {
+        ApiError apiError = ApiError.builder()
+                .status(HttpStatus.FORBIDDEN)
+                .message("Access Denied: You do not have the required role or permissions to access this resource.")
+                .subErrors(Collections.singletonList(exception.getMessage()))
+                .build();
+        return buildErrorResponseEntity(apiError);
+    }
+
+    // --- Handle JWT Token Issues ---
+    @ExceptionHandler(JwtException.class)
+    public ResponseEntity<ApiResponse<?>> handleJwtException(JwtException exception) {
+        ApiError apiError = ApiError.builder()
+                .status(HttpStatus.UNAUTHORIZED)
+                .message("Invalid or Expired JWT Token")
+                .subErrors(Collections.singletonList(exception.getMessage()))
+                .build();
+        return buildErrorResponseEntity(apiError);
+    }
+
+    // --- Handle General Spring Security Login Issues ---
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<ApiResponse<?>> handleAuthenticationException(AuthenticationException exception) {
+        ApiError apiError = ApiError.builder()
+                .status(HttpStatus.UNAUTHORIZED)
+                .message("Authentication Failed")
+                .subErrors(Collections.singletonList(exception.getMessage()))
+                .build();
+        return buildErrorResponseEntity(apiError);
+    }
+
     @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
     public ResponseEntity<ApiResponse<?>> handleHttpMediaTypeNotSupported(HttpMediaTypeNotSupportedException exception) {
         ApiError apiError = ApiError.builder()
@@ -33,7 +110,6 @@ public class GlobalExceptionHandler {
         return buildErrorResponseEntity(apiError);
     }
 
-    // NEW: Handle malformed JSON or parse errors
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ApiResponse<?>> handleHttpMessageNotReadable(HttpMessageNotReadableException exception) {
         ApiError apiError = ApiError.builder()
@@ -44,7 +120,7 @@ public class GlobalExceptionHandler {
         return buildErrorResponseEntity(apiError);
     }
 
-    // Handle generic exceptions correctly
+    // --- Fallback for all other unhandled crashes ---
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<?>> handleInternalServerError(Exception exception) {
         ApiError apiError = ApiError.builder()
@@ -54,7 +130,6 @@ public class GlobalExceptionHandler {
         return buildErrorResponseEntity(apiError);
     }
 
-    // Helper method
     private ResponseEntity<ApiResponse<?>> buildErrorResponseEntity(ApiError apiError) {
         return new ResponseEntity<>(new ApiResponse<>(apiError), apiError.getStatus());
     }
