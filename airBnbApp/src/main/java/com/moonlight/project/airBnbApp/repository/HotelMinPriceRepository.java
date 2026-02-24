@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Optional;
 
@@ -21,6 +22,9 @@ public interface HotelMinPriceRepository extends JpaRepository<HotelMinPrice, Lo
                 AND i.date BETWEEN :startDate AND :endDate
                 AND i.hotel.active = true
             GROUP BY i.hotel
+            HAVING COUNT(i.date) = :dateCount
+                AND (:minPrice IS NULL OR AVG(i.price) >= :minPrice)
+                AND (:maxPrice IS NULL OR AVG(i.price) <= :maxPrice)
             """)
     Page<HotelPriceDto> findHotelsWithAvailableInventory(
             @Param("city") String city,
@@ -28,6 +32,8 @@ public interface HotelMinPriceRepository extends JpaRepository<HotelMinPrice, Lo
             @Param("endDate") LocalDate endDate,
             @Param("roomsCount") Integer roomsCount,
             @Param("dateCount") Integer dateCount,
+            @Param("minPrice") BigDecimal minPrice, // NEW
+            @Param("maxPrice") BigDecimal maxPrice, // NEW
             Pageable pageable
     );
 

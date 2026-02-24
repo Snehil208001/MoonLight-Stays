@@ -3,17 +3,17 @@ package com.moonlight.project.airBnbApp.service;
 import com.moonlight.project.airBnbApp.dto.HotelDto;
 import com.moonlight.project.airBnbApp.dto.HotelInfoDto;
 
-import java.util.List; // Import this
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.List;
 
 public interface HotelService {
 
     HotelDto createNewHotel(HotelDto hotelDto);
 
-    HotelDto getHotelById(Long id);
-
-    // --- ADD THIS ---
     List<HotelDto> getAllHotels();
-    // ----------------
+
+    HotelDto getHotelById(Long id);
 
     HotelDto updateHotelById(Long id, HotelDto hotelDto);
 
@@ -22,4 +22,7 @@ public interface HotelService {
     void activateHotel(Long hotelId);
 
     HotelInfoDto getHotelInfoById(Long hotelId);
+
+    // NEW: Method to manually update surge pricing
+    void updateSurgeFactor(Long hotelId, BigDecimal surgeFactor, LocalDate startDate, LocalDate endDate);
 }

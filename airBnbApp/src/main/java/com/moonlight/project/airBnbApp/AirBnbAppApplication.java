@@ -2,14 +2,15 @@ package com.moonlight.project.airBnbApp;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication
 @EnableScheduling
+@EnableAsync // <--- ADD THIS ANNOTATION
 public class AirBnbAppApplication {
 
 	public static void main(String[] args) {
 		SpringApplication.run(AirBnbAppApplication.class, args);
 	}
-
 }

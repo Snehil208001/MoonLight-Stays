@@ -65,7 +65,7 @@ public class Booking {
     @Column(nullable = false,precision = 10,scale = 2)
     private BigDecimal amount;
 
-    @OneToOne(mappedBy = "booking", cascade = CascadeType.ALL)
-    private Payment payment;
+    @Column(unique = true)
+    private String paymentSessionId;
 
 }

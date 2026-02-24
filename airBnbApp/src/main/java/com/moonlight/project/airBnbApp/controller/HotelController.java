@@ -1,6 +1,7 @@
 package com.moonlight.project.airBnbApp.controller;
 
 import com.moonlight.project.airBnbApp.dto.HotelDto;
+import com.moonlight.project.airBnbApp.dto.SurgeUpdateDto; // ADDED
 import com.moonlight.project.airBnbApp.service.HotelService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -8,7 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List; // Import this
+import java.util.List;
 
 @RestController
 @RequestMapping("/admin/hotels")
@@ -25,12 +26,10 @@ public class HotelController {
         return new ResponseEntity<>(hotel, HttpStatus.CREATED);
     }
 
-    // --- ADD THIS METHOD ---
     @GetMapping
     public ResponseEntity<List<HotelDto>> getAllHotels() {
         return ResponseEntity.ok(hotelService.getAllHotels());
     }
-    // -----------------------
 
     @GetMapping("/{hotelId}")
     public ResponseEntity<HotelDto> getHotelById(@PathVariable Long hotelId) {
@@ -38,7 +37,6 @@ public class HotelController {
         return ResponseEntity.ok(hotelDto);
     }
 
-    // ... (rest of your existing methods: update, delete, activate)
     @PutMapping("/{hotelId}")
     public ResponseEntity<HotelDto> updateHotelById(@PathVariable Long hotelId,@RequestBody HotelDto hotelDto) {
         HotelDto hotel = hotelService.updateHotelById(hotelId,hotelDto);
@@ -52,8 +50,23 @@ public class HotelController {
     }
 
     @PatchMapping("/{hotelId}")
-    public ResponseEntity<Void> activateHotelById(@PathVariable Long hotelId) {
+    public ResponseEntity<Void> toggleHotelStatus(@PathVariable Long hotelId) {
         hotelService.activateHotel(hotelId);
+        return ResponseEntity.noContent().build();
+    }
+
+    // --- NEW: Endpoint to update surge pricing ---
+    @PatchMapping("/{hotelId}/surge")
+    public ResponseEntity<Void> updateSurgeFactor(
+            @PathVariable Long hotelId,
+            @RequestBody SurgeUpdateDto surgeUpdateDto) {
+
+        hotelService.updateSurgeFactor(
+                hotelId,
+                surgeUpdateDto.getSurgeFactor(),
+                surgeUpdateDto.getStartDate(),
+                surgeUpdateDto.getEndDate()
+        );
         return ResponseEntity.noContent().build();
     }
 }

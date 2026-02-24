@@ -4,6 +4,7 @@ import com.moonlight.project.airBnbApp.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -36,7 +37,13 @@ public class WebSecurityConfig {
                         .requestMatchers("/admin/**").hasRole("HOTEL_MANAGER")
                         // FIX: Changed from /booking/** to /bookings/** to match your controller
                         .requestMatchers("/bookings/**").authenticated()
+                        // Protect the POST endpoint for reviews
+                        .requestMatchers(HttpMethod.POST, "/hotels/*/reviews").authenticated()
+                        // Protect the User Profile and Favorites endpoints
+                        .requestMatchers("/users/**").authenticated()
                         .requestMatchers("/auth/**").permitAll()
+                        // --- NEW: Allow public access to Swagger UI and API Docs ---
+                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .anyRequest().permitAll()
                 );
 

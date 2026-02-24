@@ -8,6 +8,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -16,9 +17,15 @@ import java.util.List;
 
 public interface InventoryRepository extends JpaRepository<Inventory,Long> {
 
-    void deleteByDateAfterAndRoom(LocalDate date, Room room);
+    // FIX: Bulk delete to prevent N+1 performance crash
+    @Modifying
+    @Query("DELETE FROM Inventory i WHERE i.room = :room AND i.date > :date")
+    void deleteByDateAfterAndRoom(@Param("date") LocalDate date, @Param("room") Room room);
 
-    void deleteByRoom(Room room);
+    // FIX: Bulk delete to prevent N+1 performance crash
+    @Modifying
+    @Query("DELETE FROM Inventory i WHERE i.room = :room")
+    void deleteByRoom(@Param("room") Room room);
 
     @Query("""
             SELECT DISTINCT i.hotel
@@ -41,11 +48,12 @@ public interface InventoryRepository extends JpaRepository<Inventory,Long> {
     );
 
 
+    // FIX: Changed BETWEEN to >= and < to ensure checkOutDate is NOT locked
     @Query("""
             SELECT i
             FROM Inventory i
             WHERE i.room.id = :roomId
-                AND i.date BETWEEN :startDate AND :endDate
+                AND i.date >= :startDate AND i.date < :endDate
                 AND i.closed = false
                 AND (i.totalCount - i.bookedCount - i.reservedCount) >= :roomsCount
             """)

@@ -8,10 +8,12 @@ import com.moonlight.project.airBnbApp.entity.enums.BookingStatus;
 import com.moonlight.project.airBnbApp.exception.ResourceNotFoundException;
 import com.moonlight.project.airBnbApp.exception.UnAuthorisedExceptions;
 import com.moonlight.project.airBnbApp.repository.*;
+import com.moonlight.project.airBnbApp.strategy.PricingService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
@@ -32,6 +34,12 @@ public class BookingServiceImpl implements BookingService {
     private final HotelRepository hotelRepository;
     private final RoomRepository roomRepository;
     private final InventoryRepository inventoryRepository;
+    private final CheckoutService checkoutService;
+    private final PricingService pricingService;
+    private final EmailService emailService;
+
+    @Value("${frontend.url}")
+    private String frontendUrl;
 
     @Override
     @Transactional
@@ -49,7 +57,6 @@ public class BookingServiceImpl implements BookingService {
         Room room = roomRepository.findById(bookingRequest.getRoomId()).orElseThrow(() ->
                 new ResourceNotFoundException("Room not found with id: " + bookingRequest.getRoomId()));
 
-        // Validate that the Room belongs to the requested Hotel
         if (!room.getHotel().getId().equals(hotel.getId())) {
             throw new IllegalStateException("The requested room does not belong to the requested hotel.");
         }
@@ -57,13 +64,18 @@ public class BookingServiceImpl implements BookingService {
         List<Inventory> inventoryList = inventoryRepository.findAndLockAvailableInventory(room.getId(),
                 bookingRequest.getCheckInDate(), bookingRequest.getCheckOutDate(), bookingRequest.getRoomsCount());
 
-        long daysCount = ChronoUnit.DAYS.between(bookingRequest.getCheckInDate(), bookingRequest.getCheckOutDate()) + 1;
+        long daysCount = ChronoUnit.DAYS.between(bookingRequest.getCheckInDate(), bookingRequest.getCheckOutDate());
 
         if (inventoryList.size() != daysCount) {
             throw new IllegalStateException("Room is not available anymore");
         }
 
+        BigDecimal totalAmount = BigDecimal.ZERO;
+
         for (Inventory inventory : inventoryList) {
+            BigDecimal dailyPrice = pricingService.calculateDynamicPricing(inventory);
+            BigDecimal priceForRequestedRooms = dailyPrice.multiply(BigDecimal.valueOf(bookingRequest.getRoomsCount()));
+            totalAmount = totalAmount.add(priceForRequestedRooms);
             inventory.setReservedCount(inventory.getReservedCount() + bookingRequest.getRoomsCount());
         }
 
@@ -79,7 +91,7 @@ public class BookingServiceImpl implements BookingService {
                 .checkOutDate(bookingRequest.getCheckOutDate())
                 .user(user)
                 .roomsCount(bookingRequest.getRoomsCount())
-                .amount(BigDecimal.TEN) // TODO: calculate dynamic amount
+                .amount(totalAmount)
                 .build();
 
         booking = bookingRepository.save(booking);
@@ -148,8 +160,15 @@ public class BookingServiceImpl implements BookingService {
             throw new IllegalStateException("Booking is already cancelled");
         }
 
-        // Revert the inventory! Using 0 as the room count to bypass locking availability checks
-        // and just grab the rows to update them.
+        // NEW: Track if a refund was made so the email knows what to say
+        boolean isRefunded = false;
+
+        if (booking.getBookingStatus() == BookingStatus.CONFIRMED && booking.getPaymentSessionId() != null) {
+            log.info("Booking is CONFIRMED. Initiating Stripe refund for session: {}", booking.getPaymentSessionId());
+            checkoutService.refundPayment(booking.getPaymentSessionId());
+            isRefunded = true;
+        }
+
         List<Inventory> inventoryList = inventoryRepository.findAndLockAvailableInventory(
                 booking.getRoom().getId(),
                 booking.getCheckInDate(),
@@ -165,6 +184,63 @@ public class BookingServiceImpl implements BookingService {
 
         booking.setBookingStatus(BookingStatus.CANCELLED);
         bookingRepository.save(booking);
+        log.info("Booking {} has been successfully cancelled.", bookingId);
+
+        // NEW: Trigger the cancellation email asynchronously
+        emailService.sendBookingCancellationEmail(
+                booking.getUser().getEmail(),
+                booking.getUser().getName(),
+                booking.getId(),
+                booking.getHotel().getName(),
+                isRefunded
+        );
+    }
+
+    @Override
+    public String initiatePayments(Long bookingId) {
+        Booking booking = bookingRepository.findById(bookingId).orElseThrow(()->
+                new ResourceNotFoundException("Booking not found with id: " + bookingId));
+
+        checkBookingOwnership(booking);
+
+        if (hasBookingExpired(booking)) {
+            throw new IllegalStateException("Booking has already expired");
+        }
+
+        String sessionUrl = checkoutService.getCheckoutSession(booking,
+                frontendUrl+"/payments/success",frontendUrl+"/payments/failure");
+
+
+        booking.setBookingStatus(BookingStatus.PAYMENT_PENDING);
+        bookingRepository.save(booking);
+
+        return sessionUrl;
+    }
+
+    @Override
+    @Transactional
+    public void capturePayment(String sessionId) {
+        Booking booking = bookingRepository.findByPaymentSessionId(sessionId).orElseThrow(() ->
+                new ResourceNotFoundException("Booking not found for session ID: " + sessionId));
+
+        if (booking.getBookingStatus() == BookingStatus.CONFIRMED) {
+            log.info("Payment for session {} was already captured. Skipping DB update and email.", sessionId);
+            return;
+        }
+
+        booking.setBookingStatus(BookingStatus.CONFIRMED);
+        bookingRepository.save(booking);
+
+        log.info("Successfully captured payment and confirmed booking ID: {}", booking.getId());
+
+        emailService.sendBookingConfirmation(
+                booking.getUser().getEmail(),
+                booking.getUser().getName(),
+                booking.getId(),
+                booking.getHotel().getName(),
+                booking.getCheckInDate().toString(),
+                booking.getCheckOutDate().toString()
+        );
     }
 
     public boolean hasBookingExpired(Booking booking) {

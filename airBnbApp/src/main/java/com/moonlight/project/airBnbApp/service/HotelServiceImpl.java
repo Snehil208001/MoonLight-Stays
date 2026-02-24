@@ -4,12 +4,15 @@ import com.moonlight.project.airBnbApp.dto.HotelDto;
 import com.moonlight.project.airBnbApp.dto.HotelInfoDto;
 import com.moonlight.project.airBnbApp.dto.RoomDto;
 import com.moonlight.project.airBnbApp.entity.Hotel;
+import com.moonlight.project.airBnbApp.entity.Inventory;
 import com.moonlight.project.airBnbApp.entity.Room;
 import com.moonlight.project.airBnbApp.entity.User;
 import com.moonlight.project.airBnbApp.exception.ResourceNotFoundException;
 import com.moonlight.project.airBnbApp.exception.UnAuthorisedExceptions;
 import com.moonlight.project.airBnbApp.repository.HotelRepository;
+import com.moonlight.project.airBnbApp.repository.InventoryRepository;
 import com.moonlight.project.airBnbApp.repository.RoomRepository;
+import com.moonlight.project.airBnbApp.strategy.PricingService;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +20,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -28,7 +33,11 @@ public class HotelServiceImpl implements HotelService {
     private final HotelRepository hotelRepository;
     private final ModelMapper modelMapper;
     private final InventoryService inventoryService;
-    private final RoomRepository roomRepository; // Added this injection
+    private final RoomRepository roomRepository;
+
+    // NEW: Inject InventoryRepository and PricingService
+    private final InventoryRepository inventoryRepository;
+    private final PricingService pricingService;
 
     @Override
     public HotelDto createNewHotel(HotelDto hotelDto) {
@@ -94,7 +103,6 @@ public class HotelServiceImpl implements HotelService {
 
         checkOwnership(hotel);
 
-        // Correctly delete all inventories AND rooms to prevent Foreign Key crashes
         for (Room room: hotel.getRooms()) {
             inventoryService.deleteAllInventories(room);
             roomRepository.delete(room);
@@ -106,16 +114,20 @@ public class HotelServiceImpl implements HotelService {
     @Override
     @Transactional
     public void activateHotel(Long hotelId) {
-        log.info("Activating the hotel with ID: {}", hotelId);
+        log.info("Toggling activation status for hotel with ID: {}", hotelId);
         Hotel hotel = hotelRepository
                 .findById(hotelId)
                 .orElseThrow(() -> new ResourceNotFoundException("Hotel not found with ID: "+ hotelId));
 
         checkOwnership(hotel);
 
-        hotel.setActive(true);
+        if (!hotel.getActive() && (hotel.getRooms() == null || hotel.getRooms().isEmpty())) {
+            throw new IllegalStateException("Cannot activate a hotel that has no rooms. Please add rooms first.");
+        }
 
+        hotel.setActive(!hotel.getActive());
         hotelRepository.save(hotel);
+        log.info("Hotel ID: {} is now active: {}", hotelId, hotel.getActive());
     }
 
     @Override
@@ -130,6 +142,30 @@ public class HotelServiceImpl implements HotelService {
                 .toList();
 
         return new HotelInfoDto(modelMapper.map(hotel, HotelDto.class), room);
+    }
+
+    // --- NEW: Surge Factor Update Logic ---
+    @Override
+    @Transactional
+    public void updateSurgeFactor(Long hotelId, BigDecimal surgeFactor, LocalDate startDate, LocalDate endDate) {
+        log.info("Updating surge factor to {} for hotel ID: {} between {} and {}", surgeFactor, hotelId, startDate, endDate);
+
+        Hotel hotel = hotelRepository.findById(hotelId)
+                .orElseThrow(() -> new ResourceNotFoundException("Hotel not found with ID: " + hotelId));
+
+        checkOwnership(hotel);
+
+        List<Inventory> inventoryList = inventoryRepository.findByHotelAndDateBetween(hotel, startDate, endDate);
+
+        for (Inventory inventory : inventoryList) {
+            // 1. Set the new multiplier
+            inventory.setSurgeFactor(surgeFactor);
+            // 2. Instantly recalculate the dynamic price so the next user checking out sees the new price
+            inventory.setPrice(pricingService.calculateDynamicPricing(inventory));
+        }
+
+        inventoryRepository.saveAll(inventoryList);
+        log.info("Successfully updated surge factor and prices for {} inventory records.", inventoryList.size());
     }
 
     private User getCurrentUser() {

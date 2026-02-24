@@ -12,10 +12,14 @@ public interface BookingService {
 
     BookingDto addGuests(Long bookingId, List<GuestDto> guestDtoList);
 
-    // --- NEW METHODS FOR PROPER FLOW ---
     BookingDto getBookingById(Long bookingId);
 
     List<BookingDto> getMyBookings();
 
     void cancelBooking(Long bookingId);
+
+    String initiatePayments(Long bookingId);
+
+    // Method to capture successful payment from webhook
+    void capturePayment(String sessionId);
 }
