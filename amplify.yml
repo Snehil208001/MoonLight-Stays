@@ -1,18 +1,17 @@
 version: 1
+# Requires Amplify Console: Monorepo + App root = moonlight-stays
 frontend:
   phases:
     preBuild:
       commands:
-        - cd moonlight-stays
         - npm ci
     build:
       commands:
-        - cd moonlight-stays
         - npm run build
   artifacts:
-    baseDirectory: moonlight-stays/.next
+    baseDirectory: .next
     files:
       - '**/*'
   cache:
     paths:
-      - moonlight-stays/node_modules/**/*
+      - node_modules/**/*
