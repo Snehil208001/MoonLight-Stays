@@ -1,6 +1,9 @@
 version: 1
 applications:
   - appRoot: moonlight-stays
+    env:
+      variables:
+        AMPLIFY_MONOREPO_APP_ROOT: moonlight-stays
     frontend:
       phases:
         preBuild:
@@ -15,4 +18,5 @@ applications:
           - '**/*'
       cache:
         paths:
+          - .next/cache/**/*
           - node_modules/**/*

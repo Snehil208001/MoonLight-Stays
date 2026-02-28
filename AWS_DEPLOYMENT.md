@@ -155,6 +155,32 @@ mvn clean package -DskipTests
 
 ---
 
+---
+
+## Amplify Frontend (Next.js Monorepo)
+
+The frontend lives in `moonlight-stays/`. For monorepo deployments, Amplify needs `AMPLIFY_MONOREPO_APP_ROOT` to find the build output and generate `deploy-manifest.json`.
+
+### Fix: "Failed to find deploy-manifest.json"
+
+1. **In `amplify.yml`** (already set): `AMPLIFY_MONOREPO_APP_ROOT: moonlight-stays` under `env.variables`.
+2. **In Amplify Console** (required for existing apps):
+   - Amplify Console → Your app → **Hosting** → **Environment variables** → **Manage variables**
+   - Add: `AMPLIFY_MONOREPO_APP_ROOT` = `moonlight-stays`
+   - Save and **Redeploy** the app.
+
+### Environment variables for frontend
+
+In Amplify → Environment variables, add:
+
+| Name | Value |
+|------|-------|
+| `NEXT_PUBLIC_API_URL` | `http://moonlight-stays.ap-south-1.elasticbeanstalk.com/api/v1` |
+
+For production with HTTPS, use your backend URL (e.g. `https://api.yourdomain.com/api/v1`).
+
+---
+
 ## Notes
 
 - **File uploads**: Stored in `uploads/` on the EB instance. Ephemeral — lost on redeploy. For production, consider S3.
