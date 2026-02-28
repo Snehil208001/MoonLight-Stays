@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "framework": { "name": "next.js", "version": "14.2.18" },
+  "routes": [
+    {
+      "path": "/*",
+      "target": { "kind": "Compute", "src": "default" }
+    }
+  ],
+  "computeResources": [
+    {
+      "name": "default",
+      "runtime": "nodejs20.x",
+      "entrypoint": "server.js"
+    }
+  ]
+}

@@ -5,6 +5,7 @@ const backendOrigin = apiUrl && /^https?:\/\//.test(apiUrl)
   : 'http://localhost:8080';
 
 const nextConfig = {
+  output: "standalone",
   images: {
     remotePatterns: [
       { protocol: 'http', hostname: 'localhost', pathname: '/**' },
