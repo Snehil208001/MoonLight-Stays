@@ -1,0 +1,74 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --accent-cyan: #00ffff;
+  --accent-coral: #ff7f50;
+  --midnight-950: #0a0a1a;
+  --midnight-900: #0f0f23;
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html,
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
+  font-family: var(--font-plus-jakarta), "Inter", system-ui, sans-serif;
+  background-color: #0a0a1a;
+  color: #fff;
+}
+
+/* Mesh gradient background */
+.mesh-gradient-bg {
+  background: linear-gradient(
+    135deg,
+    #0a0a1a 0%,
+    #0f0f23 25%,
+    #1a1a3e 50%,
+    #15152e 75%,
+    #0a0a1a 100%
+  );
+  background-size: 400% 400%;
+  animation: mesh-gradient 15s ease infinite;
+}
+
+@keyframes mesh-gradient {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+/* Glassmorphism base */
+.glass {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.glass-dark {
+  background: rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Glow effects */
+.glow-cyan {
+  box-shadow: 0 0 20px rgba(0, 255, 255, 0.3),
+    0 0 40px rgba(0, 255, 255, 0.2);
+}
+
+.glow-cyan-text {
+  text-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+}

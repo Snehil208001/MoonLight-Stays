@@ -68,4 +68,6 @@ public class Booking {
     @Column(unique = true)
     private String paymentSessionId;
 
+    // --- NEW: Track applied promo code ---
+    private String promoCode;
 }

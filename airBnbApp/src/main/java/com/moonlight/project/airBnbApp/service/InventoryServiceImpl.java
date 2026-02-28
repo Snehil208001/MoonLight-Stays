@@ -2,9 +2,13 @@ package com.moonlight.project.airBnbApp.service;
 
 import com.moonlight.project.airBnbApp.dto.HotelPriceDto;
 import com.moonlight.project.airBnbApp.dto.HotelSearchRequest;
+import com.moonlight.project.airBnbApp.dto.RoomPriceDto;
+import com.moonlight.project.airBnbApp.entity.Hotel;
 import com.moonlight.project.airBnbApp.entity.Inventory;
 import com.moonlight.project.airBnbApp.entity.Room;
+import com.moonlight.project.airBnbApp.exception.ResourceNotFoundException;
 import com.moonlight.project.airBnbApp.repository.HotelMinPriceRepository;
+import com.moonlight.project.airBnbApp.repository.HotelRepository;
 import com.moonlight.project.airBnbApp.repository.InventoryRepository;
 import com.moonlight.project.airBnbApp.repository.RoomRepository;
 import lombok.RequiredArgsConstructor;
@@ -17,10 +21,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -29,7 +35,8 @@ public class InventoryServiceImpl implements InventoryService {
 
     private final InventoryRepository inventoryRepository;
     private final HotelMinPriceRepository hotelMinPriceRepository;
-    private final RoomRepository roomRepository; // Added to fetch all rooms for cron job
+    private final RoomRepository roomRepository;
+    private final HotelRepository hotelRepository;
 
     @Override
     @Transactional
@@ -68,37 +75,76 @@ public class InventoryServiceImpl implements InventoryService {
     @Override
     @Transactional
     public void deleteAllInventories(Room room) {
-        log.info("Deleting all inventories for room with ID: {}", room.getId());
         inventoryRepository.deleteByRoom(room);
     }
 
     @Override
     public Page<HotelPriceDto> searchHotels(HotelSearchRequest hotelSearchRequest) {
-        log.info("Searching hotels for {} city, from {} to {}", hotelSearchRequest.getCity(),hotelSearchRequest.getCheckInDate(),hotelSearchRequest.getEndDate());
         Pageable pageable = PageRequest.of(hotelSearchRequest.getPage(), hotelSearchRequest.getSize());
 
         long dateCount = ChronoUnit.DAYS.between(hotelSearchRequest.getCheckInDate(), hotelSearchRequest.getEndDate());
+        if (dateCount < 1) dateCount = 1; // Minimum 1 night
+        LocalDate endDateExclusive = hotelSearchRequest.getCheckInDate().plusDays(dateCount);
+        LocalDate endDateInclusive = endDateExclusive.minusDays(1);
 
-        Page<HotelPriceDto> hotelPage = hotelMinPriceRepository.findHotelsWithAvailableInventory(
-                hotelSearchRequest.getCity(),
-                hotelSearchRequest.getCheckInDate(),
-                hotelSearchRequest.getEndDate().minusDays(1),
-                hotelSearchRequest.getRoomsCount(),
-                (int) dateCount,
-                hotelSearchRequest.getMinPrice(), // NEW: Passing min price
-                hotelSearchRequest.getMaxPrice(), // NEW: Passing max price
-                pageable
-        );
+        String city = hotelSearchRequest.getCity();
+        boolean searchAllCities = city == null || city.isBlank();
+
+        Page<HotelPriceDto> hotelPage = searchAllCities
+                ? hotelMinPriceRepository.findHotelsWithAvailableInventoryAllCities(
+                        hotelSearchRequest.getCheckInDate(),
+                        endDateInclusive,
+                        hotelSearchRequest.getRoomsCount(),
+                        (int) dateCount,
+                        hotelSearchRequest.getMinPrice(),
+                        hotelSearchRequest.getMaxPrice(),
+                        hotelSearchRequest.getRoomType(),
+                        hotelSearchRequest.getAmenity(),
+                        pageable)
+                : hotelMinPriceRepository.findHotelsWithAvailableInventory(
+                        city.trim(),
+                        hotelSearchRequest.getCheckInDate(),
+                        endDateInclusive,
+                        hotelSearchRequest.getRoomsCount(),
+                        (int) dateCount,
+                        hotelSearchRequest.getMinPrice(),
+                        hotelSearchRequest.getMaxPrice(),
+                        hotelSearchRequest.getRoomType(),
+                        hotelSearchRequest.getAmenity(),
+                        pageable);
 
         return hotelPage;
     }
 
-    // FIX: Daily cron job to append the 365th day so inventory never runs out
-    @Scheduled(cron = "0 0 0 * * *") // Runs at midnight every day
+    @Override
+    public List<RoomPriceDto> getRoomPricesForHotel(Long hotelId, LocalDate checkIn, LocalDate checkOut, Integer roomsCount) {
+        Hotel hotel = hotelRepository.findById(hotelId)
+                .orElseThrow(() -> new ResourceNotFoundException("Hotel not found with ID: " + hotelId));
+        final long nights = Math.max(1, ChronoUnit.DAYS.between(checkIn, checkOut));
+        LocalDate endDateExclusive = checkIn.plusDays(nights);
+        final int count = roomsCount != null && roomsCount > 0 ? roomsCount : 1;
+
+        return hotel.getRooms().stream()
+                .map(room -> {
+                    List<Inventory> inventories = inventoryRepository.findByRoomAndDateRangeForPricing(
+                            room.getId(), checkIn, endDateExclusive, count);
+                    if (inventories.size() != nights) {
+                        return null; // not available for all nights
+                    }
+                    BigDecimal total = inventories.stream()
+                            .map(inv -> inv.getPrice().multiply(BigDecimal.valueOf(count)))
+                            .reduce(BigDecimal.ZERO, BigDecimal::add);
+                    BigDecimal pricePerNight = total.divide(BigDecimal.valueOf(nights), 2, RoundingMode.HALF_UP);
+                    return new RoomPriceDto(room.getId(), pricePerNight, total);
+                })
+                .filter(r -> r != null)
+                .collect(Collectors.toList());
+    }
+
+    @Scheduled(cron = "0 0 0 * * *")
     @Transactional
     public void appendNewInventoryDay() {
-        log.info("Running daily cron job to append new inventory day for all rooms.");
-        LocalDate targetDate = LocalDate.now().plusYears(1).minusDays(1); // The exact 365th day from today
+        LocalDate targetDate = LocalDate.now().plusYears(1).minusDays(1);
 
         List<Room> allRooms = roomRepository.findAll();
         List<Inventory> newInventories = new ArrayList<>();
@@ -120,6 +166,5 @@ public class InventoryServiceImpl implements InventoryService {
         }
 
         inventoryRepository.saveAll(newInventories);
-        log.info("Successfully appended {} new inventory records for {}", newInventories.size(), targetDate);
     }
 }

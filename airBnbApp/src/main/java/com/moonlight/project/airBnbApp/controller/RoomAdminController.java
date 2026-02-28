@@ -29,9 +29,20 @@ public class RoomAdminController {
 
     @GetMapping("/{roomId}")
     public ResponseEntity<RoomDto> getRoomById(@PathVariable Long hotelId, @PathVariable Long roomId) {
-        // Service only accepts roomId based on your RoomService.java interface
         RoomDto roomDto = roomService.getRoomById(roomId);
         return ResponseEntity.ok(roomDto);
+    }
+
+    @PutMapping("/{roomId}")
+    public ResponseEntity<RoomDto> updateRoomById(@PathVariable Long hotelId, @PathVariable Long roomId, @RequestBody RoomDto roomDto) {
+        RoomDto updated = roomService.updateRoom(hotelId, roomId, roomDto);
+        return ResponseEntity.ok(updated);
+    }
+
+    @PostMapping("/{roomId}/update")
+    public ResponseEntity<RoomDto> updateRoomByIdPost(@PathVariable Long hotelId, @PathVariable Long roomId, @RequestBody RoomDto roomDto) {
+        RoomDto updated = roomService.updateRoom(hotelId, roomId, roomDto);
+        return ResponseEntity.ok(updated);
     }
 
     @DeleteMapping("/{roomId}")

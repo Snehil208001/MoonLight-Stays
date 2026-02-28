@@ -66,4 +66,20 @@ public interface InventoryRepository extends JpaRepository<Inventory,Long> {
     );
 
     List<Inventory> findByHotelAndDateBetween(Hotel hotel, LocalDate startDate, LocalDate endDate);
+
+    /** Read-only: get inventory for room + dates for pricing (no lock) */
+    @Query("""
+            SELECT i FROM Inventory i
+            WHERE i.room.id = :roomId
+                AND i.date >= :startDate AND i.date < :endDate
+                AND i.closed = false
+                AND (i.totalCount - i.bookedCount - i.reservedCount) >= :roomsCount
+            ORDER BY i.date
+            """)
+    List<Inventory> findByRoomAndDateRangeForPricing(
+            @Param("roomId") Long roomId,
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate,
+            @Param("roomsCount") Integer roomsCount
+    );
 }

@@ -11,5 +11,8 @@ public class BookingRequest {
     private Long roomId;
     private LocalDate checkInDate;
     private LocalDate checkOutDate;
-    private  Integer roomsCount;
+    private Integer roomsCount;
+
+    // --- NEW: Optional Promo Code Field ---
+    private String promoCode;
 }

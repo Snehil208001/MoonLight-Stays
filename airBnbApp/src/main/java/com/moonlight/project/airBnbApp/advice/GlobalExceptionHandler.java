@@ -3,6 +3,7 @@ package com.moonlight.project.airBnbApp.advice;
 import com.moonlight.project.airBnbApp.exception.ResourceNotFoundException;
 import com.moonlight.project.airBnbApp.exception.UnAuthorisedExceptions;
 import io.jsonwebtoken.JwtException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -18,6 +19,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @RestControllerAdvice
+@Slf4j
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(ResourceNotFoundException.class)
@@ -94,7 +96,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<?>> handleAuthenticationException(AuthenticationException exception) {
         ApiError apiError = ApiError.builder()
                 .status(HttpStatus.UNAUTHORIZED)
-                .message("Authentication Failed")
+                .message("Invalid email or password")
                 .subErrors(Collections.singletonList(exception.getMessage()))
                 .build();
         return buildErrorResponseEntity(apiError);
@@ -123,9 +125,10 @@ public class GlobalExceptionHandler {
     // --- Fallback for all other unhandled crashes ---
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<?>> handleInternalServerError(Exception exception) {
+        log.error("Internal Server Error: {}", exception.getMessage(), exception);
         ApiError apiError = ApiError.builder()
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .message(exception.getMessage())
+                .message(exception.getMessage() != null ? exception.getMessage() : "Internal Server Error")
                 .build();
         return buildErrorResponseEntity(apiError);
     }

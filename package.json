@@ -1,0 +1,13 @@
+{
+  "name": "airbnb-fullstack",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently -n backend,frontend,stripe -c blue,green,magenta \"npm run dev:backend\" \"npm run dev:frontend\" \"npm run dev:stripe\"",
+    "dev:backend": "cd airBnbApp && mvn spring-boot:run",
+    "dev:frontend": "cd moonlight-stays && npm run dev",
+    "dev:stripe": "stripe listen --forward-to localhost:8080/api/v1/webhooks/payment"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

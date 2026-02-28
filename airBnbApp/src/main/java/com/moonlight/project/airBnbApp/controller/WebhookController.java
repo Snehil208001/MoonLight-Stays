@@ -50,8 +50,10 @@ public class WebhookController {
                 }
 
                 if (session != null) {
-                    log.info("Successfully extracted Session ID: {}", session.getId());
-                    bookingService.capturePayment(session.getId());
+                    String sessionId = session.getId();
+                    String clientRefId = session.getClientReferenceId();
+                    log.info("Processing checkout.session.completed - Session ID: {}, client_reference_id: {}", sessionId, clientRefId);
+                    bookingService.capturePayment(sessionId, clientRefId);
                 } else {
                     log.error("Failed to deserialize the Stripe Session object.");
                 }
@@ -63,7 +65,7 @@ public class WebhookController {
             log.error("Invalid Stripe signature", e);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid signature");
         } catch (Exception e) {
-            log.error("Error processing Stripe webhook", e);
+            log.error("Error processing Stripe webhook: {} - {}", e.getClass().getSimpleName(), e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error processing webhook");
         }
     }

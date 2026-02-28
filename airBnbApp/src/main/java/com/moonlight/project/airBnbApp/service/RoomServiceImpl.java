@@ -26,6 +26,7 @@ public class RoomServiceImpl implements RoomService {
     private final RoomRepository roomRepository;
     private final HotelRepository hotelRepository;
     private final InventoryService inventoryService;
+    private final PricingUpdateService pricingUpdateService;
     private final ModelMapper modelMapper;
 
     @Override
@@ -46,8 +47,48 @@ public class RoomServiceImpl implements RoomService {
         room = roomRepository.save(room);
 
         inventoryService.initializeRoomForAYear(room);
+        pricingUpdateService.updateHotelPricesForHotel(hotel); // Populate HotelMinPrice so hotel appears in search
 
         return modelMapper.map(room,RoomDto.class);
+    }
+
+    @Override
+    @Transactional
+    public RoomDto updateRoom(Long hotelId, Long roomId, RoomDto roomDto) {
+        log.info("Updating room with ID: {} in hotel with ID: {}", roomId, hotelId);
+        Room room = roomRepository
+                .findById(roomId)
+                .orElseThrow(() -> new ResourceNotFoundException("Room not found with ID: " + roomId));
+
+        if (!room.getHotel().getId().equals(hotelId)) {
+            throw new ResourceNotFoundException("Room does not belong to this hotel.");
+        }
+
+        if (!room.getHotel().getOwner().getId().equals(getCurrentUser().getId())) {
+            throw new UnAuthorisedExceptions("You do not own this hotel and cannot update rooms.");
+        }
+
+        if (roomDto.getTypes() != null) room.setTypes(roomDto.getTypes());
+        if (roomDto.getBasePrice() != null) room.setBasePrice(roomDto.getBasePrice());
+        if (roomDto.getPhotos() != null) room.setPhotos(roomDto.getPhotos());
+        if (roomDto.getAmenities() != null) room.setAmenities(roomDto.getAmenities());
+        if (roomDto.getTotalCount() != null) room.setTotalCount(roomDto.getTotalCount());
+        if (roomDto.getCapacity() != null) room.setCapacity(roomDto.getCapacity());
+
+        room = roomRepository.save(room);
+
+        // Update pricing in background - use fresh hotel fetch to avoid lazy/detached entity issues
+        Long hotelIdForPricing = room.getHotel() != null ? room.getHotel().getId() : hotelId;
+        try {
+            Hotel hotelForPricing = hotelRepository.findById(hotelIdForPricing).orElse(null);
+            if (hotelForPricing != null) {
+                pricingUpdateService.updateHotelPricesForHotel(hotelForPricing);
+            }
+        } catch (Exception e) {
+            log.warn("Failed to update hotel prices after room update (room saved successfully): {}", e.getMessage());
+        }
+
+        return toRoomDto(room);
     }
 
     @Override
@@ -92,5 +133,17 @@ public class RoomServiceImpl implements RoomService {
 
     private User getCurrentUser() {
         return (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+    }
+
+    private RoomDto toRoomDto(Room room) {
+        RoomDto dto = new RoomDto();
+        dto.setId(room.getId());
+        dto.setTypes(room.getTypes());
+        dto.setBasePrice(room.getBasePrice());
+        dto.setPhotos(room.getPhotos());
+        dto.setAmenities(room.getAmenities());
+        dto.setTotalCount(room.getTotalCount());
+        dto.setCapacity(room.getCapacity());
+        return dto;
     }
 }

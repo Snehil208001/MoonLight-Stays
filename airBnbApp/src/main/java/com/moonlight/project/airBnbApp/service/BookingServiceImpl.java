@@ -14,6 +14,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
@@ -21,7 +23,10 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
+
+import org.springframework.data.domain.Sort;
 
 @Service
 @Slf4j
@@ -37,6 +42,9 @@ public class BookingServiceImpl implements BookingService {
     private final CheckoutService checkoutService;
     private final PricingService pricingService;
     private final EmailService emailService;
+
+    // --- NEW: Added Repo for Promo Codes ---
+    private final PromoCodeRepository promoCodeRepository;
 
     @Value("${frontend.url}")
     private String frontendUrl;
@@ -79,6 +87,18 @@ public class BookingServiceImpl implements BookingService {
             inventory.setReservedCount(inventory.getReservedCount() + bookingRequest.getRoomsCount());
         }
 
+        // --- NEW: Apply Promo Code Math ---
+        if (bookingRequest.getPromoCode() != null && !bookingRequest.getPromoCode().trim().isEmpty()) {
+            PromoCode promoCode = promoCodeRepository.findByCodeAndActiveTrue(bookingRequest.getPromoCode())
+                    .orElseThrow(() -> new ResourceNotFoundException("Invalid or expired promo code: " + bookingRequest.getPromoCode()));
+
+            BigDecimal discountPercentage = BigDecimal.valueOf(promoCode.getDiscountPercentage() / 100.0);
+            BigDecimal discountAmount = totalAmount.multiply(discountPercentage);
+            totalAmount = totalAmount.subtract(discountAmount);
+
+            log.info("Applied promo code {}: Discounted amount by {}", promoCode.getCode(), discountAmount);
+        }
+
         inventoryRepository.saveAll(inventoryList);
 
         User user = getCurrentUser();
@@ -92,6 +112,7 @@ public class BookingServiceImpl implements BookingService {
                 .user(user)
                 .roomsCount(bookingRequest.getRoomsCount())
                 .amount(totalAmount)
+                .promoCode(bookingRequest.getPromoCode()) // --- NEW: Save applied code ---
                 .build();
 
         booking = bookingRepository.save(booking);
@@ -149,6 +170,18 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
+    public Page<BookingDto> getMyBookingsPaginated(int page, int size, List<BookingStatus> statusFilter) {
+        User user = getCurrentUser();
+        PageRequest pageRequest = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        if (statusFilter != null && !statusFilter.isEmpty()) {
+            return bookingRepository.findByUserAndBookingStatusIn(user, statusFilter, pageRequest)
+                    .map(booking -> modelMapper.map(booking, BookingDto.class));
+        }
+        return bookingRepository.findByUser(user, pageRequest)
+                .map(booking -> modelMapper.map(booking, BookingDto.class));
+    }
+
+    @Override
     @Transactional
     public void cancelBooking(Long bookingId) {
         Booking booking = bookingRepository.findById(bookingId).orElseThrow(() ->
@@ -160,7 +193,6 @@ public class BookingServiceImpl implements BookingService {
             throw new IllegalStateException("Booking is already cancelled");
         }
 
-        // NEW: Track if a refund was made so the email knows what to say
         boolean isRefunded = false;
 
         if (booking.getBookingStatus() == BookingStatus.CONFIRMED && booking.getPaymentSessionId() != null) {
@@ -186,7 +218,6 @@ public class BookingServiceImpl implements BookingService {
         bookingRepository.save(booking);
         log.info("Booking {} has been successfully cancelled.", bookingId);
 
-        // NEW: Trigger the cancellation email asynchronously
         emailService.sendBookingCancellationEmail(
                 booking.getUser().getEmail(),
                 booking.getUser().getName(),
@@ -220,8 +251,32 @@ public class BookingServiceImpl implements BookingService {
     @Override
     @Transactional
     public void capturePayment(String sessionId) {
-        Booking booking = bookingRepository.findByPaymentSessionId(sessionId).orElseThrow(() ->
-                new ResourceNotFoundException("Booking not found for session ID: " + sessionId));
+        capturePayment(sessionId, null);
+    }
+
+    @Override
+    @Transactional
+    public void capturePayment(String sessionId, String clientReferenceId) {
+        Booking booking = bookingRepository.findByPaymentSessionId(sessionId)
+                .or(() -> {
+                    if (clientReferenceId != null && !clientReferenceId.isBlank()) {
+                        try {
+                            Long bookingId = Long.parseLong(clientReferenceId.trim());
+                            return bookingRepository.findById(bookingId);
+                        } catch (NumberFormatException ignored) {
+                            return Optional.empty();
+                        }
+                    }
+                    return Optional.empty();
+                })
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Booking not found for session ID: " + sessionId +
+                                (clientReferenceId != null ? ", client_reference_id: " + clientReferenceId : "")));
+
+        if (booking.getPaymentSessionId() == null) {
+            booking.setPaymentSessionId(sessionId);
+            bookingRepository.save(booking);
+        }
 
         if (booking.getBookingStatus() == BookingStatus.CONFIRMED) {
             log.info("Payment for session {} was already captured. Skipping DB update and email.", sessionId);

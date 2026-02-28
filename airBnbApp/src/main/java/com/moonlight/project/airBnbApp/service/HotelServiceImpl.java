@@ -55,8 +55,9 @@ public class HotelServiceImpl implements HotelService {
 
     @Override
     public List<HotelDto> getAllHotels() {
-        log.info("Getting all hotels");
-        return hotelRepository.findAll()
+        User currentUser = getCurrentUser();
+        log.info("Getting hotels for user: {}", currentUser.getEmail());
+        return hotelRepository.findByOwner(currentUser)
                 .stream()
                 .map(hotel -> modelMapper.map(hotel, HotelDto.class))
                 .collect(Collectors.toList());

@@ -12,6 +12,8 @@ import com.moonlight.project.airBnbApp.repository.ReviewRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -70,6 +72,13 @@ public class ReviewServiceImpl implements ReviewService {
                 .stream()
                 .map(review -> modelMapper.map(review, ReviewDto.class))
                 .collect(Collectors.toList());
+    }
+
+    // --- ADDED: Paginated method ---
+    @Override
+    public Page<ReviewDto> getHotelReviewsPaginated(Long hotelId, int page, int size) {
+        return reviewRepository.findByHotelId(hotelId, PageRequest.of(page, size))
+                .map(review -> modelMapper.map(review, ReviewDto.class));
     }
 
     @Override

@@ -12,9 +12,12 @@ public class HotelSearchRequest {
     private LocalDate endDate;
     private Integer roomsCount;
 
-    // --- NEW: Advanced Search Filters ---
     private BigDecimal minPrice;
     private BigDecimal maxPrice;
+
+    // --- NEW: Added for Search by Amenity and Room Type ---
+    private String roomType;
+    private String amenity;
 
     private Integer page = 0;
     private Integer size = 10;

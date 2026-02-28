@@ -43,6 +43,7 @@ public class CheckoutServiceImpl implements  CheckoutService{
                     .setCustomer(customer.getId())
                     .setSuccessUrl(successUrl)
                     .setCancelUrl(failureUrl)
+                    .setClientReferenceId(String.valueOf(booking.getId()))
                     .addLineItem(
                             SessionCreateParams.LineItem.builder()
                                     .setQuantity(1L)

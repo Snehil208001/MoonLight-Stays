@@ -18,9 +18,11 @@ public interface HotelMinPriceRepository extends JpaRepository<HotelMinPrice, Lo
     @Query("""
             SELECT NEW com.moonlight.project.airBnbApp.dto.HotelPriceDto(i.hotel, AVG(i.price))
             FROM HotelMinPrice i
-            WHERE i.hotel.city = :city
+            WHERE LOWER(TRIM(i.hotel.city)) = LOWER(TRIM(:city))
                 AND i.date BETWEEN :startDate AND :endDate
                 AND i.hotel.active = true
+                AND (:roomType IS NULL OR EXISTS (SELECT 1 FROM Room r WHERE r.hotel = i.hotel AND r.types = :roomType))
+                AND (:amenity IS NULL OR CAST(function('array_to_string', i.hotel.amenities, ',') AS String) LIKE CONCAT('%', CAST(:amenity AS String), '%'))
             GROUP BY i.hotel
             HAVING COUNT(i.date) = :dateCount
                 AND (:minPrice IS NULL OR AVG(i.price) >= :minPrice)
@@ -32,8 +34,34 @@ public interface HotelMinPriceRepository extends JpaRepository<HotelMinPrice, Lo
             @Param("endDate") LocalDate endDate,
             @Param("roomsCount") Integer roomsCount,
             @Param("dateCount") Integer dateCount,
-            @Param("minPrice") BigDecimal minPrice, // NEW
-            @Param("maxPrice") BigDecimal maxPrice, // NEW
+            @Param("minPrice") BigDecimal minPrice,
+            @Param("maxPrice") BigDecimal maxPrice,
+            @Param("roomType") String roomType,
+            @Param("amenity") String amenity,
+            Pageable pageable
+    );
+
+    @Query("""
+            SELECT NEW com.moonlight.project.airBnbApp.dto.HotelPriceDto(i.hotel, AVG(i.price))
+            FROM HotelMinPrice i
+            WHERE i.date BETWEEN :startDate AND :endDate
+                AND i.hotel.active = true
+                AND (:roomType IS NULL OR EXISTS (SELECT 1 FROM Room r WHERE r.hotel = i.hotel AND r.types = :roomType))
+                AND (:amenity IS NULL OR CAST(function('array_to_string', i.hotel.amenities, ',') AS String) LIKE CONCAT('%', CAST(:amenity AS String), '%'))
+            GROUP BY i.hotel
+            HAVING COUNT(i.date) = :dateCount
+                AND (:minPrice IS NULL OR AVG(i.price) >= :minPrice)
+                AND (:maxPrice IS NULL OR AVG(i.price) <= :maxPrice)
+            """)
+    Page<HotelPriceDto> findHotelsWithAvailableInventoryAllCities(
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate,
+            @Param("roomsCount") Integer roomsCount,
+            @Param("dateCount") Integer dateCount,
+            @Param("minPrice") BigDecimal minPrice,
+            @Param("maxPrice") BigDecimal maxPrice,
+            @Param("roomType") String roomType,
+            @Param("amenity") String amenity,
             Pageable pageable
     );
 

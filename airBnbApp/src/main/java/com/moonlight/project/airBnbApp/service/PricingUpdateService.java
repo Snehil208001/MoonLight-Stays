@@ -53,6 +53,11 @@ public class PricingUpdateService {
         }
     }
 
+    /** Call after adding a room so the hotel appears in search immediately */
+    public void updateHotelPricesForHotel(Hotel hotel) {
+        updateHotelPrices(hotel);
+    }
+
     private void updateHotelPrices(Hotel hotel) {
         log.info("Updating hotel prices for hotel ID: {}",hotel.getId() );
         LocalDate startDate = LocalDate.now();

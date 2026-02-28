@@ -31,12 +31,20 @@ public class AuthController {
         return new ResponseEntity<>(authService.signUp(signUpRequestDto), HttpStatus.CREATED);
     }
 
+    // --- ADDED: Admin Signup Endpoint ---
+    @PostMapping("/admin/signup")
+    public ResponseEntity<UserDto> adminSignup(@RequestBody SignUpRequestDto signUpRequestDto) {
+        return new ResponseEntity<>(authService.signUpAdmin(signUpRequestDto), HttpStatus.CREATED);
+    }
+
     @PostMapping("/login")
     public ResponseEntity<LoginResponseDto> login(@RequestBody LoginDto loginDto, HttpServletRequest request, HttpServletResponse response) {
         String[] tokens = authService.login(loginDto);
 
         Cookie cookie = new Cookie("refreshToken", tokens[1]);
         cookie.setHttpOnly(true);
+        cookie.setPath("/");
+        cookie.setMaxAge(60 * 60 * 24 * 30 * 6); // 6 months
 
         response.addCookie(cookie);
 
@@ -45,22 +53,31 @@ public class AuthController {
 
     @PostMapping("/refresh")
     public ResponseEntity<LoginResponseDto> refresh(HttpServletRequest request) {
-        // 1. Extract cookies safely to avoid NullPointerException
         Cookie[] cookies = request.getCookies();
         if (cookies == null) {
             throw new AuthenticationServiceException("Refresh token is not found inside cookies");
         }
 
-        // 2. Safely stream and find the refreshToken
         String refreshToken = Arrays.stream(cookies)
                 .filter(cookie -> "refreshToken".equals(cookie.getName()))
                 .findFirst()
                 .map(Cookie::getValue)
                 .orElseThrow(() -> new AuthenticationServiceException("Refresh token is not found inside cookies"));
 
-        // 3. Generate a new access token
         String accessToken = authService.refreshToken(refreshToken);
 
         return ResponseEntity.ok(new LoginResponseDto(accessToken));
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(HttpServletResponse response) {
+        Cookie cookie = new Cookie("refreshToken", "");
+        cookie.setHttpOnly(true);
+        cookie.setPath("/");
+        cookie.setMaxAge(0);
+
+        response.addCookie(cookie);
+
+        return ResponseEntity.noContent().build();
     }
 }

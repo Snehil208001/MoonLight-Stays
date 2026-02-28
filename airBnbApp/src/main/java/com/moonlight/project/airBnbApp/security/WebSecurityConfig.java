@@ -17,6 +17,14 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Stream;
 
 @Configuration
 @EnableWebSecurity
@@ -26,23 +34,49 @@ public class WebSecurityConfig {
     private final JWTAuthFilter jwtAuthFilter;
     private final UserRepository userRepository;
 
+    @Value("${app.cors.allowed-origins:}")
+    private String corsAllowedOrigins;
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        List<String> localhostOrigins = List.of(
+                "http://localhost:3000", "http://localhost:3001", "http://localhost:3002", "http://localhost:3003",
+                "http://localhost:3004", "http://localhost:3005",
+                "http://127.0.0.1:3000", "http://127.0.0.1:3001", "http://127.0.0.1:3002", "http://127.0.0.1:3003",
+                "http://127.0.0.1:3004", "http://127.0.0.1:3005"
+        );
+        List<String> origins = corsAllowedOrigins != null && !corsAllowedOrigins.isBlank()
+                ? Stream.concat(
+                        Arrays.stream(corsAllowedOrigins.split(",")).map(String::trim).filter(s -> !s.isEmpty()),
+                        localhostOrigins.stream()
+                ).distinct().toList()
+                : localhostOrigins;
+
+        CorsConfiguration config = new CorsConfiguration();
+        config.setAllowedOrigins(origins);
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        config.setAllowedHeaders(List.of("*"));
+        config.setAllowCredentials(true);
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+        return source;
+    }
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
 
         httpSecurity
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrfConfig -> csrfConfig.disable())
                 .sessionManagement(sessionConfig -> sessionConfig.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/admin/**").hasRole("HOTEL_MANAGER")
-                        // FIX: Changed from /booking/** to /bookings/** to match your controller
                         .requestMatchers("/bookings/**").authenticated()
-                        // Protect the POST endpoint for reviews
                         .requestMatchers(HttpMethod.POST, "/hotels/*/reviews").authenticated()
-                        // Protect the User Profile and Favorites endpoints
                         .requestMatchers("/users/**").authenticated()
                         .requestMatchers("/auth/**").permitAll()
-                        // --- NEW: Allow public access to Swagger UI and API Docs ---
+                        .requestMatchers("/images/**").permitAll() // Allow serving images publically
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .anyRequest().permitAll()
                 );

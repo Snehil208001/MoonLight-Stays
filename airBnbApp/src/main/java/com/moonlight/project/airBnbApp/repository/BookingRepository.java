@@ -4,6 +4,8 @@ import com.moonlight.project.airBnbApp.entity.Booking;
 import com.moonlight.project.airBnbApp.entity.Hotel;
 import com.moonlight.project.airBnbApp.entity.User;
 import com.moonlight.project.airBnbApp.entity.enums.BookingStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -15,12 +17,13 @@ import java.util.Optional;
 public interface BookingRepository extends JpaRepository<Booking, Long> {
     List<Booking> findByUser(User user);
 
-    // Custom query to find booking by Stripe session ID
+    Page<Booking> findByUser(User user, Pageable pageable);
+
+    Page<Booking> findByUserAndBookingStatusIn(User user, List<BookingStatus> statuses, Pageable pageable);
+
     Optional<Booking> findByPaymentSessionId(String paymentSessionId);
 
-    // Custom query to find expired abandoned bookings
     List<Booking> findByBookingStatusInAndCreatedAtBefore(List<BookingStatus> statuses, LocalDateTime createdAt);
 
-    // --- NEW: Check if a user has a specific booking status for a hotel ---
     boolean existsByUserAndHotelAndBookingStatus(User user, Hotel hotel, BookingStatus status);
 }
