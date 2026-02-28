@@ -7,6 +7,7 @@ frontend:
         - npm ci
     build:
       commands:
+        - cd moonlight-stays
         - npm run build
   artifacts:
     baseDirectory: moonlight-stays/.next
