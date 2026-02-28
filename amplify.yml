@@ -1,18 +1,17 @@
 version: 1
-applications:
-  - appRoot: moonlight-stays
-    frontend:
-      phases:
-        preBuild:
-          commands:
-            - npm ci
-        build:
-          commands:
-            - npm run build
-      artifacts:
-        baseDirectory: .next
-        files:
-          - '**/*'
-      cache:
-        paths:
-          - node_modules/**/*
+frontend:
+  phases:
+    preBuild:
+      commands:
+        - cd moonlight-stays
+        - npm ci
+    build:
+      commands:
+        - npm run build
+  artifacts:
+    baseDirectory: moonlight-stays/.next
+    files:
+      - '**/*'
+  cache:
+    paths:
+      - moonlight-stays/node_modules/**/*
