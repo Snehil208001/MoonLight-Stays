@@ -38,14 +38,18 @@ public class DataSeeder implements ApplicationRunner {
     @Value("${app.seed.enabled:true}")
     private boolean seedEnabled;
 
+    @Value("${app.seed.on-empty-db:true}")
+    private boolean seedOnEmptyDb;
+
     private static final int MIN_HOTELS_TO_SEED = 8;
 
     @Override
     @Transactional
     public void run(ApplicationArguments args) {
-        if (!seedEnabled) return;
-
         long count = hotelRepository.count();
+        // Always seed when DB is empty (e.g. fresh prod deploy) so search works
+        boolean shouldSeed = seedEnabled || (seedOnEmptyDb && count == 0);
+        if (!shouldSeed) return;
         if (count >= MIN_HOTELS_TO_SEED) {
             log.info("Database has {} hotels, skipping seed", count);
             return;

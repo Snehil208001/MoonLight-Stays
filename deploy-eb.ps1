@@ -22,7 +22,7 @@ if (Test-Path $zipPath) { Remove-Item $zipPath }
 Write-Host "Creating deployment package..." -ForegroundColor Cyan
 $jarName = Split-Path $jarPath -Leaf
 Copy-Item $jarPath -Destination "application.jar" -Force
-Compress-Archive -Path "application.jar", ".ebextensions" -DestinationPath $zipPath -Force
+Compress-Archive -Path "application.jar", ".ebextensions", "Procfile" -DestinationPath $zipPath -Force
 Remove-Item "application.jar" -Force
 
 Write-Host "Done: $zipPath" -ForegroundColor Green

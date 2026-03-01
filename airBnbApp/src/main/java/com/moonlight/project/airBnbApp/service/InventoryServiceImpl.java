@@ -80,37 +80,57 @@ public class InventoryServiceImpl implements InventoryService {
 
     @Override
     public Page<HotelPriceDto> searchHotels(HotelSearchRequest hotelSearchRequest) {
-        Pageable pageable = PageRequest.of(hotelSearchRequest.getPage(), hotelSearchRequest.getSize());
+        int page = hotelSearchRequest.getPage() != null ? hotelSearchRequest.getPage() : 0;
+        int size = hotelSearchRequest.getSize() != null && hotelSearchRequest.getSize() > 0 ? hotelSearchRequest.getSize() : 10;
+        // Clamp to prevent "Page offset exceeds Integer.MAX_VALUE" when page/size are huge (e.g. from Swagger)
+        if (page < 0) page = 0;
+        if (size > 100) size = 100;
+        int maxPage = size > 0 ? Integer.MAX_VALUE / size : 0;
+        if (page > maxPage) page = maxPage;
+        Pageable pageable = PageRequest.of(page, size);
 
-        long dateCount = ChronoUnit.DAYS.between(hotelSearchRequest.getCheckInDate(), hotelSearchRequest.getEndDate());
+        LocalDate checkIn = hotelSearchRequest.getCheckInDate();
+        LocalDate endDate = hotelSearchRequest.getEndDate();
+        if (checkIn == null) checkIn = LocalDate.now();
+        if (endDate == null) endDate = checkIn.plusDays(1);
+        if (endDate.isBefore(checkIn)) endDate = checkIn.plusDays(1);
+
+        long dateCount = ChronoUnit.DAYS.between(checkIn, endDate);
         if (dateCount < 1) dateCount = 1; // Minimum 1 night
-        LocalDate endDateExclusive = hotelSearchRequest.getCheckInDate().plusDays(dateCount);
+        LocalDate endDateExclusive = checkIn.plusDays(dateCount);
         LocalDate endDateInclusive = endDateExclusive.minusDays(1);
 
         String city = hotelSearchRequest.getCity();
         boolean searchAllCities = city == null || city.isBlank();
 
+        String roomType = (hotelSearchRequest.getRoomType() != null && !hotelSearchRequest.getRoomType().isBlank())
+                ? hotelSearchRequest.getRoomType().trim() : null;
+        String amenity = (hotelSearchRequest.getAmenity() != null && !hotelSearchRequest.getAmenity().isBlank())
+                ? hotelSearchRequest.getAmenity().trim() : null;
+        Integer roomsCount = (hotelSearchRequest.getRoomsCount() != null && hotelSearchRequest.getRoomsCount() > 0)
+                ? hotelSearchRequest.getRoomsCount() : 1;
+
         Page<HotelPriceDto> hotelPage = searchAllCities
                 ? hotelMinPriceRepository.findHotelsWithAvailableInventoryAllCities(
-                        hotelSearchRequest.getCheckInDate(),
+                        checkIn,
                         endDateInclusive,
-                        hotelSearchRequest.getRoomsCount(),
+                        roomsCount,
                         (int) dateCount,
                         hotelSearchRequest.getMinPrice(),
                         hotelSearchRequest.getMaxPrice(),
-                        hotelSearchRequest.getRoomType(),
-                        hotelSearchRequest.getAmenity(),
+                        roomType,
+                        amenity,
                         pageable)
                 : hotelMinPriceRepository.findHotelsWithAvailableInventory(
                         city.trim(),
-                        hotelSearchRequest.getCheckInDate(),
+                        checkIn,
                         endDateInclusive,
-                        hotelSearchRequest.getRoomsCount(),
+                        roomsCount,
                         (int) dateCount,
                         hotelSearchRequest.getMinPrice(),
                         hotelSearchRequest.getMaxPrice(),
-                        hotelSearchRequest.getRoomType(),
-                        hotelSearchRequest.getAmenity(),
+                        roomType,
+                        amenity,
                         pageable);
 
         return hotelPage;

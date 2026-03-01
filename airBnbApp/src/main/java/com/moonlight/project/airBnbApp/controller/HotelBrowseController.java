@@ -53,6 +53,18 @@ public class HotelBrowseController {
     /** POST variant for search - browsers don't support GET with body */
     @PostMapping("/search")
     public ResponseEntity<List<HotelPriceDto>> searchHotelsPost(@RequestBody HotelSearchRequest hotelSearchRequest) {
+        // Apply defaults for null/missing fields to avoid NPE and ensure valid search
+        if (hotelSearchRequest.getCheckInDate() == null) {
+            hotelSearchRequest.setCheckInDate(LocalDate.now());
+        }
+        if (hotelSearchRequest.getEndDate() == null) {
+            hotelSearchRequest.setEndDate(hotelSearchRequest.getCheckInDate().plusDays(1));
+        }
+        if (hotelSearchRequest.getRoomsCount() == null || hotelSearchRequest.getRoomsCount() < 1) {
+            hotelSearchRequest.setRoomsCount(1);
+        }
+        if (hotelSearchRequest.getPage() == null) hotelSearchRequest.setPage(0);
+        if (hotelSearchRequest.getSize() == null) hotelSearchRequest.setSize(10);
         var page = inventoryService.searchHotels(hotelSearchRequest);
         return ResponseEntity.ok(page.getContent());
     }

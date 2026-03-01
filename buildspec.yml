@@ -1,0 +1,32 @@
+# AWS CodeBuild buildspec for AirBnb Backend
+# Builds Spring Boot JAR and outputs for Elastic Beanstalk deployment
+
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      java: corretto17
+  pre_build:
+    commands:
+      - echo "Building AirBnb Backend..."
+      - cd airBnbApp
+  build:
+    commands:
+      - mvn clean package -DskipTests
+      - echo "Build completed"
+  post_build:
+    commands:
+      - cp target/application.jar ../application.jar
+      - cd ..
+      - zip -j deploy.zip application.jar
+
+artifacts:
+  files:
+    - deploy.zip
+  name: airbnb-backend-artifact
+
+cache:
+  paths:
+    - airBnbApp/target/**/*
+    - '${HOME}/.m2/**/*'

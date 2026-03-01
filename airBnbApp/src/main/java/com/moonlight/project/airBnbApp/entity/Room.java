@@ -5,7 +5,9 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.CurrentTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -29,10 +31,10 @@ public class Room {
     @Column(nullable = false,precision = 10,scale = 2)
     private BigDecimal basePrice;
 
-    @Column(columnDefinition = "TEXT[]")
+    @JdbcTypeCode(SqlTypes.ARRAY)
     private String[] photos;
 
-    @Column(columnDefinition = "TEXT[]")
+    @JdbcTypeCode(SqlTypes.ARRAY)
     private String[] amenities;
 
     @Column(nullable = false)

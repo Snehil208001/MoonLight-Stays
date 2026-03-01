@@ -1,5 +1,6 @@
 package com.moonlight.project.airBnbApp.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.moonlight.project.airBnbApp.entity.enums.Role;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -27,6 +28,7 @@ public class User implements UserDetails {
     private String email;
 
     @Column(nullable = false)
+    @JsonIgnore
     private String password;
 
     private String name;
@@ -42,6 +44,7 @@ public class User implements UserDetails {
             joinColumns = @JoinColumn(name = "user_id"),
             inverseJoinColumns = @JoinColumn(name = "hotel_id")
     )
+    @JsonIgnore  // Exclude from serialization: avoids LazyInitializationException when Hotel.owner is serialized in search results
     private Set<Hotel> favoriteHotels = new HashSet<>();
 
     @Override
