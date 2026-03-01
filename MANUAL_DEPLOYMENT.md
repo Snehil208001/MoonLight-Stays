@@ -25,7 +25,20 @@ From the **project root** (where `deploy-eb.ps1` lives):
 
 This will:
 - Build the JAR (`mvn clean package -DskipTests`)
-- Create `airBnbApp\target\airbnb-eb-deploy.zip` with `application.jar`, `Procfile`, and `.ebextensions`
+- Create `airBnbApp\target\airbnb-eb-deploy.zip` with correct structure (files at root)
+
+### ZIP Structure (Required by Elastic Beanstalk)
+
+**When you open the zip, you must see these at the top level (no parent folder):**
+
+| At root | Description |
+|---------|--------------|
+| `application.jar` | Spring Boot JAR (Maven outputs this via `finalName=application`) |
+| `Procfile` | Must contain: `web: java -Xmx512m -Xms256m -jar application.jar` |
+| `.ebextensions/` | Folder with `01_environment.config` |
+
+**Wrong:** `airbnb-eb-deploy/` → `application.jar` (nested folder = deployment fails)  
+**Right:** `application.jar`, `Procfile`, `.ebextensions/` directly visible when opening zip
 
 ---
 
