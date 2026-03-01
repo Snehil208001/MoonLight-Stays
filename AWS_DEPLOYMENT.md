@@ -2,6 +2,8 @@
 
 Deploy the backend to **AWS RDS** (PostgreSQL) + **AWS Elastic Beanstalk** (Java). No Docker required.
 
+> **Manual deployment**: CI/CD is disabled to avoid free tier usage. Use `.\deploy-eb.ps1` and upload the zip manually. See [MANUAL_DEPLOYMENT.md](MANUAL_DEPLOYMENT.md).
+
 ---
 
 ## Prerequisites

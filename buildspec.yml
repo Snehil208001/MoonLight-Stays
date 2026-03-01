@@ -1,5 +1,6 @@
-# AWS CodeBuild buildspec for AirBnb Backend
-# Builds Spring Boot JAR and outputs for Elastic Beanstalk deployment
+# AWS CodeBuild buildspec - DISABLED (use manual deployment)
+# CI/CD pipeline disabled to avoid exhausting AWS free tier.
+# Use .\deploy-eb.ps1 and upload the zip manually. See MANUAL_DEPLOYMENT.md
 
 version: 0.2
 
