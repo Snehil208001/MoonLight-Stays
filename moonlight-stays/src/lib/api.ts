@@ -1,5 +1,7 @@
-// Use relative path so Next.js rewrites proxy to backend (avoids CORS/cookie issues)
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api/v1";
+// Always use relative path so Next.js rewrites proxy to backend.
+// This avoids CORS, mixed-content (HTTPS→HTTP), and cookie issues.
+// next.config.js uses NEXT_PUBLIC_API_URL to set the rewrite destination.
+const API_BASE = "/api/v1";
 
 export interface HotelSearchRequest {
   city: string;

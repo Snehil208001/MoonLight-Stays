@@ -4,6 +4,8 @@ applications:
     env:
       variables:
         AMPLIFY_MONOREPO_APP_ROOT: moonlight-stays
+        # Production backend URL - required for Amplify builds (override in Console if needed)
+        NEXT_PUBLIC_API_URL: http://moonlight-stays.ap-south-1.elasticbeanstalk.com/api/v1
     frontend:
       phases:
         preBuild:

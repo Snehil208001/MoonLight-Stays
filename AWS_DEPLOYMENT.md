@@ -102,7 +102,7 @@ In **Elastic Beanstalk → Configuration → Software → Environment properties
 | `MAIL_USERNAME` | *(your email)* |
 | `MAIL_PASSWORD` | *(app password)* |
 | `FRONTEND_URL` | `https://your-frontend-domain.com` |
-| `CORS_ALLOWED_ORIGINS` | `https://your-frontend-domain.com` |
+| `CORS_ALLOWED_ORIGINS` | `https://main.d30tl6vi1qydms.amplifyapp.com` (or your frontend URL) |
 
 **If using standalone RDS** (not linked through EB), also add:
 
@@ -171,13 +171,15 @@ The frontend lives in `moonlight-stays/`. For monorepo deployments, Amplify need
 
 ### Environment variables for frontend
 
-In Amplify → Environment variables, add:
+`NEXT_PUBLIC_API_URL` is set in `amplify.yml` so Amplify builds use the correct backend. The frontend always uses relative paths (`/api/v1`) and Next.js rewrites proxy to the backend—this avoids mixed-content (HTTPS frontend → HTTP backend) and CORS issues.
+
+To override (e.g. different backend per branch), add in Amplify Console → Hosting → Environment variables:
 
 | Name | Value |
 |------|-------|
 | `NEXT_PUBLIC_API_URL` | `http://moonlight-stays.ap-south-1.elasticbeanstalk.com/api/v1` |
 
-For production with HTTPS, use your backend URL (e.g. `https://api.yourdomain.com/api/v1`).
+For production with HTTPS on the backend (custom domain + ACM), use `https://api.yourdomain.com/api/v1`.
 
 ---
 
