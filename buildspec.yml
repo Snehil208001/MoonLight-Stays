@@ -20,11 +20,11 @@ phases:
       - cp target/application.jar ../application.jar
       - cp Procfile ../Procfile
       - cd ..
-      - zip deploy.zip application.jar Procfile
 
 artifacts:
   files:
-    - deploy.zip
+    - application.jar
+    - Procfile
   name: airbnb-backend-artifact
 
 cache:
