@@ -11,6 +11,9 @@ const plusJakarta = Plus_Jakarta_Sans({
 export const metadata: Metadata = {
   title: "Moonlight Stays | Ethereal Hotel Booking",
   description: "Discover breathtaking hotels curated for your vibe",
+  icons: {
+    icon: "/favicon.svg",
+  },
 };
 
 export default function RootLayout({
