@@ -19,6 +19,7 @@ phases:
     commands:
       - cp target/application.jar ../application.jar
       - cp Procfile ../Procfile
+      - cp -r .ebextensions ../.ebextensions
       - cd ..
       # Removed the 'zip deploy.zip ...' command here
 
@@ -26,6 +27,7 @@ artifacts:
   files:
     - application.jar
     - Procfile
+    - .ebextensions/01_environment.config
   # CodePipeline will automatically zip these two files together at the root level
   name: airbnb-backend-artifact
 
