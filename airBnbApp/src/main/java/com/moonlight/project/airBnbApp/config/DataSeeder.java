@@ -41,7 +41,7 @@ public class DataSeeder implements ApplicationRunner {
     @Value("${app.seed.on-empty-db:true}")
     private boolean seedOnEmptyDb;
 
-    private static final int MIN_HOTELS_TO_SEED = 8;
+    private static final int MIN_HOTELS_TO_SEED = 2;
 
     @Override
     @Transactional
