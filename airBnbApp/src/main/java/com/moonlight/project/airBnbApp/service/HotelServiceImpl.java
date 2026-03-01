@@ -9,9 +9,13 @@ import com.moonlight.project.airBnbApp.entity.Room;
 import com.moonlight.project.airBnbApp.entity.User;
 import com.moonlight.project.airBnbApp.exception.ResourceNotFoundException;
 import com.moonlight.project.airBnbApp.exception.UnAuthorisedExceptions;
+import com.moonlight.project.airBnbApp.repository.BookingRepository;
+import com.moonlight.project.airBnbApp.repository.HotelMinPriceRepository;
 import com.moonlight.project.airBnbApp.repository.HotelRepository;
 import com.moonlight.project.airBnbApp.repository.InventoryRepository;
+import com.moonlight.project.airBnbApp.repository.ReviewRepository;
 import com.moonlight.project.airBnbApp.repository.RoomRepository;
+import com.moonlight.project.airBnbApp.repository.UserRepository;
 import com.moonlight.project.airBnbApp.strategy.PricingService;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,6 +38,10 @@ public class HotelServiceImpl implements HotelService {
     private final ModelMapper modelMapper;
     private final InventoryService inventoryService;
     private final RoomRepository roomRepository;
+    private final HotelMinPriceRepository hotelMinPriceRepository;
+    private final ReviewRepository reviewRepository;
+    private final BookingRepository bookingRepository;
+    private final UserRepository userRepository;
 
     // NEW: Inject InventoryRepository and PricingService
     private final InventoryRepository inventoryRepository;
@@ -103,6 +111,16 @@ public class HotelServiceImpl implements HotelService {
                 .orElseThrow(() -> new ResourceNotFoundException("Hotel not found with ID: "+ id));
 
         checkOwnership(hotel);
+
+        // Remove from users' favorites (clears user_favorite_hotels join table)
+        for (User u : userRepository.findUsersWithHotelInFavorites(id)) {
+            u.getFavoriteHotels().remove(hotel);
+            userRepository.save(u);
+        }
+        // Delete related records (FK constraints)
+        hotelMinPriceRepository.deleteByHotel(hotel);
+        reviewRepository.deleteByHotelId(id);
+        bookingRepository.deleteByHotelId(id);
 
         for (Room room: hotel.getRooms()) {
             inventoryService.deleteAllInventories(room);
