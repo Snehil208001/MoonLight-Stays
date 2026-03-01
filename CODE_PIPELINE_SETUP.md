@@ -1,8 +1,10 @@
 # AWS CodePipeline CI/CD Setup
 
-This guide sets up an automated CI/CD pipeline for the **AirBnb Backend** (Spring Boot) using AWS CodePipeline, CodeBuild, and Elastic Beanstalk.
+This guide sets up an automated CI/CD pipeline for the **Moonlight Stays Backend** (Spring Boot) using AWS CodePipeline, CodeBuild, and Elastic Beanstalk.
 
----
+**Repository:** [https://github.com/Snehil208001/MoonLight-Stays](https://github.com/Snehil208001/MoonLight-Stays)
+
+> **Note:** Ensure `buildspec.yml` exists in the MoonLight-Stays repo root. Copy it from this project if needed.
 
 ## Architecture
 
@@ -20,8 +22,9 @@ This guide sets up an automated CI/CD pipeline for the **AirBnb Backend** (Sprin
 ## Prerequisites
 
 1. **Elastic Beanstalk** application and environment already created (see `AWS_DEPLOYMENT.md`)
-2. **CodeCommit** repository, or **GitHub** connected to AWS (via OAuth or connection)
-3. **IAM permissions** for CodePipeline, CodeBuild, and Elastic Beanstalk
+2. **GitHub** connected to AWS CodePipeline (OAuth or connection for `Snehil208001/MoonLight-Stays`)
+3. **`buildspec.yml`** in the repo root (same structure as this project: `airBnbApp/`, `moonlight-stays/`)
+4. **IAM permissions** for CodePipeline, CodeBuild, and Elastic Beanstalk
 
 ---
 
@@ -34,8 +37,8 @@ This guide sets up an automated CI/CD pipeline for the **AirBnb Backend** (Sprin
    - Description: (optional)
 
 3. **Source**
-   - Source provider: **AWS CodeCommit** or **GitHub**
-   - Repository: Select your repo (e.g. `AirBnb_BackEnd`)
+   - Source provider: **GitHub (Version 2)**
+   - Repository: `Snehil208001/MoonLight-Stays` or connect and select it
    - Reference type: **Branch**
    - Branch: `main` (or your default branch)
 
@@ -74,8 +77,8 @@ This guide sets up an automated CI/CD pipeline for the **AirBnb Backend** (Sprin
    - Encryption: **Default (AWS managed key)**
 
 3. **Add source stage**
-   - Source provider: **AWS CodeCommit** or **GitHub (Version 2)**
-   - Repository: Your repo
+   - Source provider: **GitHub (Version 2)**
+   - Repository: `Snehil208001/MoonLight-Stays`
    - Branch: `main`
    - Change detection: **Amazon CloudWatch Events** (recommended)
    - Output artifact format: **CodePipeline default**
@@ -101,27 +104,7 @@ This guide sets up an automated CI/CD pipeline for the **AirBnb Backend** (Sprin
 
 ---
 
-## Step 3: Elastic Beanstalk Deployment Package Format
-
-Elastic Beanstalk Java platform expects a **zip file** containing the JAR. Update `buildspec.yml` if your deploy fails:
-
-```yaml
-post_build:
-  commands:
-    - cp target/application.jar ../application.jar
-    - cd ..
-    - zip -j deploy.zip application.jar
-
-artifacts:
-  files:
-    - deploy.zip
-```
-
-If EB accepts the JAR directly, the current `buildspec.yml` is fine. If you get deployment errors, switch to the zip format above.
-
----
-
-## Step 4: IAM Permissions (if using custom roles)
+## Step 3: IAM Permissions (if using custom roles)
 
 Ensure the **CodeBuild service role** has:
 - `codebuild:*`
@@ -137,7 +120,7 @@ Ensure the **CodePipeline service role** has:
 
 ---
 
-## Step 5: Environment Variables (Secrets)
+## Step 4: Environment Variables (Secrets)
 
 **Do not** put secrets in `buildspec.yml`. Set them in:
 
@@ -149,10 +132,55 @@ Ensure the **CodePipeline service role** has:
 
 ---
 
-## Step 6: Trigger Pipeline
+## Step 5: Trigger Pipeline
 
 - **Automatic**: Pipeline runs on every push to `main` (if change detection is enabled)
 - **Manual**: CodePipeline Console → **Release change**
+
+---
+
+## Step 6: Test the CI/CD Pipeline
+
+### Trigger a run
+1. **Push to GitHub**: Make any change, commit, and push to `main`
+2. **Or manual**: CodePipeline → **Release change**
+
+### Verify each stage
+1. **CodePipeline** → Open your pipeline → Watch Source → Build → Deploy turn green
+2. **CodeBuild** → Build history → Click latest build → View logs
+3. **Elastic Beanstalk** → Events → Look for "Environment update completed successfully"
+
+### Test the live API
+```powershell
+# Search hotels (no auth required)
+Invoke-WebRequest -Uri "http://moonlight-stays.ap-south-1.elasticbeanstalk.com/api/v1/hotels/search" -Method POST -ContentType "application/json" -Body '{"city":"","checkInDate":"2026-03-15","endDate":"2026-03-16","roomsCount":1}' -UseBasicParsing
+```
+
+Or run `.\test-api.ps1` from the project root, or open [Swagger UI](http://moonlight-stays.ap-south-1.elasticbeanstalk.com/api/v1/swagger-ui.html)
+
+---
+
+## Elastic Beanstalk Environment Variables (Reference)
+
+Set these in **EB → Configuration → Software → Environment properties**:
+
+| Variable | Example / Description |
+|----------|------------------------|
+| `SPRING_PROFILES_ACTIVE` | `prod` |
+| `RDS_HOSTNAME` | `postgres-spring.xxxxx.ap-south-1.rds.amazonaws.com` |
+| `RDS_PORT` | `5432` |
+| `RDS_DB_NAME` | `postgres` or `airBnb` |
+| `RDS_USERNAME` | Your DB username |
+| `RDS_PASSWORD` | Your DB password |
+| `JWT_SECRET_KEY` | (your secret) |
+| `STRIPE_SECRET_KEY` | (Stripe live key) |
+| `STRIPE_WEBHOOK_SECRET` | (Stripe webhook secret) |
+| `MAIL_USERNAME` | (your email) |
+| `MAIL_PASSWORD` | (app password) |
+| `FRONTEND_URL` | `https://main.d30tl6vi1qydms.amplifyapp.com` |
+| `CORS_ALLOWED_ORIGINS` | `https://main.d30tl6vi1qydms.amplifyapp.com` |
+
+> **Note:** Use a **standalone RDS** (not linked via EB) so your database survives redeployments.
 
 ---
 
@@ -162,7 +190,7 @@ Ensure the **CodePipeline service role** has:
 |-------|----------|
 | Build fails: "buildspec.yml not found" | Ensure `buildspec.yml` is in repo root and committed |
 | Build fails: Maven/Java not found | Use `runtime-versions: java: corretto17` in buildspec |
-| Deploy fails: Invalid deployment package | Use zip format (see Step 3) |
+| Deploy fails: Invalid deployment package | Ensure `buildspec.yml` outputs `deploy.zip` (already configured) |
 | Deploy fails: Environment not found | Verify EB app and environment names in deploy stage |
 | Permission denied | Check IAM roles for CodePipeline and CodeBuild |
 
