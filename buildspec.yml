@@ -20,11 +20,13 @@ phases:
       - cp target/application.jar ../application.jar
       - cp Procfile ../Procfile
       - cd ..
+      # Removed the 'zip deploy.zip ...' command here
 
 artifacts:
   files:
     - application.jar
     - Procfile
+  # CodePipeline will automatically zip these two files together at the root level
   name: airbnb-backend-artifact
 
 cache:
