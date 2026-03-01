@@ -272,7 +272,7 @@ export const api = {
         credentials: "include",
       });
     } catch (e) {
-      throw new Error("Network error. Is the backend running on " + API_BASE + "?");
+      throw new Error("Network error. Please check your connection and try again.");
     }
     const json = await res.json().catch(() => ({}));
     if (!res.ok) {
