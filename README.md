@@ -9,8 +9,8 @@
 | | URL |
 |---|---|
 | **Frontend** | [https://main.d30tl6vi1qydms.amplifyapp.com](https://main.d30tl6vi1qydms.amplifyapp.com) |
-| **Backend API** | [http://moonlight-stays.ap-south-1.elasticbeanstalk.com/api/v1](http://moonlight-stays.ap-south-1.elasticbeanstalk.com/api/v1) |
-| **API Docs (Swagger)** | [http://moonlight-stays.ap-south-1.elasticbeanstalk.com/api/v1/swagger-ui.html](http://moonlight-stays.ap-south-1.elasticbeanstalk.com/api/v1/swagger-ui.html) |
+| **Backend API** | [http://v2-0.eba-hk6i6byc.ap-south-1.elasticbeanstalk.com/api/v1](http://v2-0.eba-hk6i6byc.ap-south-1.elasticbeanstalk.com/api/v1) |
+| **API Docs (Swagger)** | [http://v2-0.eba-hk6i6byc.ap-south-1.elasticbeanstalk.com/api/v1/swagger-ui.html](http://v2-0.eba-hk6i6byc.ap-south-1.elasticbeanstalk.com/api/v1/swagger-ui.html) |
 
 ---
 
@@ -92,9 +92,10 @@ The application is fully deployed on **AWS**. Here’s how each service is used:
    - `NEXT_PUBLIC_API_URL` in `amplify.yml` configures the backend URL for rewrites  
 
 2. **Backend (Elastic Beanstalk)**  
-   - Build JAR: `mvn clean package -DskipTests`  
-   - Upload `application.jar` via EB Console  
+   - Run `.\deploy-eb.ps1` from project root (builds JAR + creates zip with Procfile, .ebextensions)  
+   - Upload `airBnbApp/target/airbnb-eb-deploy.zip` via EB Console → **Upload and deploy**  
    - EB deploys to EC2, configures the environment, and runs the app  
+   - See [MANUAL_DEPLOYMENT.md](./MANUAL_DEPLOYMENT.md) and [ZIP_DEPLOY_CHECKLIST.md](./ZIP_DEPLOY_CHECKLIST.md)  
 
 3. **Database (RDS)**  
    - PostgreSQL instance provisioned by RDS  
@@ -109,9 +110,14 @@ The application is fully deployed on **AWS**. Here’s how each service is used:
 
 - **Region**: `ap-south-1` (Mumbai)  
 - **Frontend**: `https://main.d30tl6vi1qydms.amplifyapp.com`  
-- **Backend**: `http://moonlight-stays.ap-south-1.elasticbeanstalk.com`  
+- **Backend**: `http://v2-0.eba-hk6i6byc.ap-south-1.elasticbeanstalk.com`  
 
 For detailed setup steps, see [AWS_DEPLOYMENT.md](./AWS_DEPLOYMENT.md).
+
+### Manual Deployment (CI/CD disabled)
+
+- Use `.\deploy-eb.ps1` to build and create the deployment zip.  
+- Upload and deploy via EB Console. See [MANUAL_DEPLOYMENT.md](./MANUAL_DEPLOYMENT.md) and [EB_ENV_VARIABLES.md](./EB_ENV_VARIABLES.md).
 
 ---
 
@@ -128,7 +134,10 @@ For detailed setup steps, see [AWS_DEPLOYMENT.md](./AWS_DEPLOYMENT.md).
 │   │   └── lib/               # API client, utilities
 │   └── package.json
 ├── amplify.yml                # AWS Amplify build config
+├── deploy-eb.ps1              # Build + create EB deployment zip
 ├── AWS_DEPLOYMENT.md          # Deployment guide
+├── MANUAL_DEPLOYMENT.md       # Manual deployment steps
+├── EB_ENV_VARIABLES.md        # EB environment variables
 └── README.md
 ```
 
@@ -186,7 +195,7 @@ NEXT_PUBLIC_API_URL=http://localhost:8080/api/v1
 | **Bookings** | `POST /bookings/init`, `POST /bookings/{id}/payments` |
 | **Admin** | `POST /admin/hotels`, `GET /admin/hotels`, `PATCH /admin/hotels/{id}/surge` |
 
-Full API documentation: [Swagger UI](http://moonlight-stays.ap-south-1.elasticbeanstalk.com/api/v1/swagger-ui.html)
+Full API documentation: [Swagger UI](http://v2-0.eba-hk6i6byc.ap-south-1.elasticbeanstalk.com/api/v1/swagger-ui.html)
 
 ---
 
@@ -195,6 +204,10 @@ Full API documentation: [Swagger UI](http://moonlight-stays.ap-south-1.elasticbe
 | Document | Description |
 |----------|-------------|
 | [AWS_DEPLOYMENT.md](./AWS_DEPLOYMENT.md) | Step-by-step AWS deployment (RDS, Elastic Beanstalk, Amplify) |
+| [MANUAL_DEPLOYMENT.md](./MANUAL_DEPLOYMENT.md) | Manual deployment (deploy-eb.ps1, zip structure) |
+| [EB_ENV_VARIABLES.md](./EB_ENV_VARIABLES.md) | Elastic Beanstalk environment variables |
+| [RDS_SECURITY_GROUP_SETUP.md](./RDS_SECURITY_GROUP_SETUP.md) | RDS security group for EB access |
+| [ZIP_DEPLOY_CHECKLIST.md](./ZIP_DEPLOY_CHECKLIST.md) | Zip structure checklist for EB deployment |
 | [DEV_SETUP.md](./DEV_SETUP.md) | Local development setup |
 | [ROLE_BASED_FUNCTIONALITY.md](./ROLE_BASED_FUNCTIONALITY.md) | API endpoints by user role |
 | [API_INTEGRATION_PLAN.md](./API_INTEGRATION_PLAN.md) | API integration details |
