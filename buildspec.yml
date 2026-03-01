@@ -18,8 +18,9 @@ phases:
   post_build:
     commands:
       - cp target/application.jar ../application.jar
+      - cp Procfile ../Procfile
       - cd ..
-      - zip -j deploy.zip application.jar
+      - zip deploy.zip application.jar Procfile
 
 artifacts:
   files:
