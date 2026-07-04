@@ -1,6 +1,6 @@
 # MoonLight Stays System Design
 
-This document details the architectural, database, and system design of **MoonLight Stays**, a full-stack, real-time hotel listing and booking platform.
+This document details the architectural, database, frontend, backend, and security design of **MoonLight Stays**, a full-stack, real-time hotel listing and booking platform.
 
 ---
 
@@ -23,7 +23,7 @@ graph TD
 
 ## 2. Database Schema
 
-The persistent layer is backed by **PostgreSQL** containing the following entity relationships:
+The persistent layer is backed by **PostgreSQL** (Production) / **H2** (Development/Testing) containing the following entity relationships:
 
 ```mermaid
 erDiagram
@@ -113,24 +113,27 @@ erDiagram
 
 ---
 
-## 3. Technology Stack
+## 3. Frontend Architecture (`moonlight-stays`)
 
-### Frontend (`moonlight-stays`)
-- **Framework**: Next.js 14 (App Router, Standalone Output)
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS, PostCSS
-- **State Management & Data Fetching**: React Hooks, Fetch API with middleware API rewrites proxy
+The frontend is a single page application built on **Next.js 14** using the App Router.
 
-### Backend (`airBnbApp`)
-- **Framework**: Spring Boot 3.5 (Java 17)
-- **Database**: PostgreSQL (Production) / H2 (Testing)
-- **ORM / Persistence**: Spring Data JPA, Hibernate
-- **Security**: Spring Security 6 (JWT stateless authentication)
-- **APIs & Tooling**: Springdoc OpenAPI v3 (Swagger UI), Spring Actuator (Health & Metrics)
+### 1. Global State Management (Redux Toolkit)
+- **Auth Slice (`authSlice.ts`)**: Tracks the authenticated user's state, user role (`GUEST` vs. `HOTEL_MANAGER`), details (email, name), JWT access tokens, and favorites.
+- Syncs authentication states with client storage and refresh tokens for sessions.
+
+### 2. Page Routing Map
+- `/` - Landing Page with city search filters, listings, and calendar selects.
+- `/login` - Unified login screen allowing role selection.
+- `/profile` - Customer details & settings panel.
+- `/favorites` - Wishlist displaying favorited hotels.
+- `/hotels/[id]` - Booking details page showcasing hotel photos, reviews, and dynamic room lists.
+- `/bookings` - User's booking history and active reservation manager.
+- `/admin` - Portal for hosts to perform CRUD operations on listings, room capacities, and surge pricing.
+- `/payments/success` & `/payments/failure` - Stripe callback targets.
 
 ---
 
-## 4. Key Workflows & System Designs
+## 4. Backend System Design & Key Workflows
 
 ### 1. Dynamic Pricing Engine (Decorator Pattern)
 The application implements a flexible **Decorator Pattern** on top of a base pricing strategy to calculate dynamic room prices in real-time.
@@ -171,22 +174,36 @@ stateDiagram-v2
     CONFIRMED --> CANCELLED : /bookings/{id}/cancel
 ```
 
+- **Stripe Session Creation**: Initiated via `/bookings/{bookingId}/payments`. Creates a Stripe Customer, sets mode to `PAYMENT`, requires billing addresses, converts amounts to paise/cents (INR), and sets up success and cancellation callback URLs pointing to the frontend.
 - **Stripe Webhook Listener**: Handled by `WebhookController` which listens to `checkout.session.completed`. Upon receipt of a valid signature and session ID matching a booking, the status is updated to `CONFIRMED`.
+- **Refund Processing**: If a booking is cancelled (`/bookings/{bookingId}/cancel`), the backend fetches the `paymentIntent` from Stripe using the session ID, and issues a refund (`Refund.create`) automatically.
 
-### 4. File Uploads & Persistent Storage
+### 4. Promo Code & Discount Application
+- Public endpoints list active promo codes and validate them.
+- Discounts are validated based on validity status, code sanitization (removing quotes/whitespace), expiry, and case-insensitivity.
+- Applied discount percentages directly lower the total Stripe checkout amount.
+
+### 5. File Uploads & Persistent Storage
 - Listing images are uploaded via `/upload` by managers.
 - Saved locally under `uploads/` directory inside the project root.
 - Served publicly via resource handler mapping `file:uploads/` to `/images/**`.
 - In production (Railway), this maps to a **Persistent Volume** mounted at `/app/uploads` to prevent image loss on container redeployments.
 
-### 5. Wishlists / Favorites System
-- Authenticated users can favorite hotels.
-- Designed as a `@ManyToMany` relationship mapped through `user_favorite_hotels` join table.
-- Excluded from standard user serialization using `@JsonIgnore` to avoid `LazyInitializationException` and recursion.
+---
+
+## 5. Security & OpenAPI Details
+
+### 1. JWT Authentication
+- Custom JWT filter `JWTAuthFilter` runs on every incoming request.
+- Decodes the `Authorization: Bearer <token>` header, validates the signature using `JWT_SECRET_KEY`, and populates the Spring Security Context with user details and roles.
+
+### 2. Swagger OpenAPI Integration
+- Fully integrated using `springdoc-openapi`.
+- Accessible publicly at `/api/v1/swagger-ui/index.html` for API testing, documentation, and client generation.
 
 ---
 
-## 5. Role-Based Authorization Matrix
+## 6. Role-Based Authorization Matrix
 
 ### Available Roles
 1. **GUEST**: Regular customers who browse, book, and manage stays.
