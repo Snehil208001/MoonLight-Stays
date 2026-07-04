@@ -164,6 +164,16 @@ The frontend is a single page application built on **Next.js 14** using the App 
 - `/admin` - Portal for hosts to perform CRUD operations on listings, room capacities, and surge pricing.
 - `/payments/success` & `/payments/failure` - Stripe callback targets.
 
+### 3. Frontend Design System & UI Mechanics
+The user interface follows a **dark-mode first, glassmorphism design system** built with Tailwind CSS and Framer Motion:
+- **Color Palette & Accents**: 
+  - Midnight Deep Background: `#0a0a1a`
+  - Cards & Surfaces (Glassmorphic): `rgba(255, 255, 255, 0.05)` with `backdrop-filter: blur(16px)` and subtle borders.
+  - Primary Highlight: Electric Cyan (`#00ffff`) for button borders, interactive text glows, and status indicator outlines.
+- **Mesh Gradient**: Dynamic animated backdrop using custom keyframes (`mesh-gradient` over 15s) changing background linear positions.
+- **Fluid Layout**: Uses a unified layout wrapper (`layout.tsx`) injecting Redux Providers, enabling smooth page transitions and responsive layouts for mobile and desktop screens.
+
+
 ---
 
 ## 4. Backend System Design & Key Workflows
