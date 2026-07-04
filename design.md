@@ -33,6 +33,9 @@ erDiagram
     hotel ||--|{ room : "has"
     hotel ||--o{ booking : "receives"
     hotel ||--o{ review : "has"
+    hotel ||--o{ inventory : "tracks_daily_state"
+    hotel ||--o{ hotel_min_price : "stores_lowest_price"
+    room ||--o{ inventory : "tracks_daily_state"
     room ||--o{ booking : "booked_in"
     booking }|..|{ guest : "contains (booking_guest)"
     booking ||--o| promo_code : "applies"
@@ -51,6 +54,10 @@ erDiagram
         String city
         String[] photos
         String[] amenities
+        String contactInfo_address
+        String contactInfo_phoneNumber
+        String contactInfo_email
+        String contactInfo_location
         LocalDateTime createdAt
         LocalDateTime updatedAt
         Boolean active
@@ -66,6 +73,31 @@ erDiagram
         String[] amenities
         Integer totalCount
         Integer capacity
+        LocalDateTime createdAt
+        LocalDateTime updatedAt
+    }
+
+    inventory {
+        Long id PK
+        Long hotel_id FK
+        Long room_id FK
+        LocalDate date
+        Integer bookedCount
+        Integer reservedCount
+        Integer totalCount
+        BigDecimal surgeFactor
+        BigDecimal price
+        String city
+        Boolean closed
+        LocalDateTime createdAt
+        LocalDateTime updatedAt
+    }
+
+    hotel_min_price {
+        Long id PK
+        Long hotel_id FK
+        LocalDate date
+        BigDecimal price
         LocalDateTime createdAt
         LocalDateTime updatedAt
     }
@@ -88,9 +120,10 @@ erDiagram
 
     guest {
         Long id PK
+        Long user_id FK
         String name
-        String email
-        String phone
+        Gender gender
+        Integer age
     }
 
     review {
@@ -98,15 +131,15 @@ erDiagram
         Long hotel_id FK
         Long user_id FK
         Integer rating
-        String comment
+        String content
         LocalDateTime createdAt
+        LocalDateTime updatedAt
     }
     
     promo_code {
         Long id PK
         String code UK
-        BigDecimal discountAmount
-        LocalDate expiryDate
+        Double discountPercentage
         Boolean active
     }
 ```
