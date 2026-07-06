@@ -10,6 +10,7 @@
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![AWS](https://img.shields.io/badge/AWS-Amplify%20%7C%20EB%20%7C%20RDS-FF9900?style=for-the-badge&logo=amazonaws&logoColor=white)](https://aws.amazon.com/)
 [![Stripe](https://img.shields.io/badge/Stripe-Payments-635BFF?style=for-the-badge&logo=stripe&logoColor=white)](https://stripe.com/)
+[![Android](https://img.shields.io/badge/Android-Kotlin-3DDC84?style=for-the-badge&logo=android&logoColor=white)](https://developer.android.com/)
 
 **Full-stack hotel booking application** with dynamic pricing, Stripe payments, role-based access, and production AWS deployment.
 
@@ -130,6 +131,16 @@
 | **Amazon RDS** | Managed PostgreSQL |
 | **Stripe** | Payment processing |
 
+### Android App Client
+
+| Technology | Purpose |
+|------------|---------|
+| **Kotlin** | Programming language |
+| **Jetpack Compose** | Declarative UI framework |
+| **Hilt (Dagger)** | Dependency Injection |
+| **Retrofit / OkHttp** | Network HTTP client |
+| **State-Hoisted ViewModels** | Clean reactive MVI/MVVM design |
+
 ---
 
 ## 🏗 Architecture
@@ -191,6 +202,14 @@ MoonLight-Stays/
 │   ├── public/
 │   └── package.json
 │
+├── app/                            # Android Jetpack Compose client
+│   ├── src/main/java/
+│   │   └── com/snehil/moon_stays_androidapp/
+│   │       ├── core/               # Navigation routes, Hilt modules, utilities
+│   │       ├── mainui/             # Glassmorphic UI Screens (Login, SignUp, Onboarding, Guest/Manager Dashboards, Details, Reviews)
+│   │       └── ui/theme/           # Cyberpunk color tokens & Compose shapes
+│   └── build.gradle.kts            # Application Gradle configurations
+│
 ├── amplify.yml                     # Amplify build config
 ├── deploy-eb.ps1                   # Build + create EB deployment zip
 ├── AWS_DEPLOYMENT.md               # Full AWS deployment guide
@@ -238,6 +257,9 @@ cd moonlight-stays && npm run dev
 
 # Stripe webhooks (for payments)
 stripe listen --forward-to localhost:8080/api/v1/webhooks/payment
+
+# Android App (local debug apk compile)
+.\gradlew assembleDebug
 ```
 
 ### Environment Variables
