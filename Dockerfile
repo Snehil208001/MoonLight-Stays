@@ -20,5 +20,6 @@ COPY --from=build /app/airBnbApp/target/application.jar app.jar
 # Expose port (Render automatically routes web traffic)
 EXPOSE 5000
 
-# Run Spring Boot app with dynamic server port mapped to Render's $PORT env var
-ENTRYPOINT ["sh", "-c", "java -Dserver.port=${PORT:-5000} -jar app.jar"]
+# Run Spring Boot app with dynamic server port mapped to Railway's $PORT env var
+ENTRYPOINT ["sh", "-c", "java -Dserver.port=${PORT:-5000} -Dspring.profiles.active=${SPRING_PROFILES_ACTIVE:-prod} -jar app.jar"]
+
