@@ -42,7 +42,10 @@ public class DatabaseConfig {
                 if (password == null) password = System.getenv("PGPASSWORD");
                 if (password == null) password = "";
 
-                String dbUrl = "jdbc:postgresql://" + host + ":" + port + "/" + dbName + "?sslmode=require";
+                String dbUrl = "jdbc:postgresql://" + host + ":" + port + "/" + dbName;
+                if (host != null && !host.equals("localhost") && !host.equals("127.0.0.1")) {
+                    dbUrl += "?sslmode=require";
+                }
 
                 HikariConfig hikariConfig = new HikariConfig();
                 hikariConfig.setJdbcUrl(dbUrl);
