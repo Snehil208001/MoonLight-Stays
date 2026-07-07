@@ -1,0 +1,45 @@
+{
+	"info": {
+		"name": "Moonlight Stays Engine API Suite",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Auth",
+			"item": [
+				{
+					"name": "User Registration",
+					"request": {
+						"method": "POST",
+						"header": [
+							{"key": "Content-Type", "value": "application/json"}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"testuser@moonlight.com\",\n  \"password\": \"SecurePass123!\",\n  \"firstName\": \"Snehil\",\n  \"lastName\": \"Kumar\",\n  \"role\": \"ROLE_GUEST\"\n}"
+						},
+						"url": {
+							"raw": "http://localhost:8080/api/v1/auth/register"
+						}
+					}
+				},
+				{
+					"name": "User Login",
+					"request": {
+						"method": "POST",
+						"header": [
+							{"key": "Content-Type", "value": "application/json"}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"testuser@moonlight.com\",\n  \"password\": \"SecurePass123!\"\n}"
+						},
+						"url": {
+							"raw": "http://localhost:8080/api/v1/auth/login"
+						}
+					}
+				}
+			]
+		}
+	]
+}

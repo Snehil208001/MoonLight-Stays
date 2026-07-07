@@ -1,13 +1,16 @@
 package com.snehil.moon_stays_androidapp.mainui.hoteldetail.viewmodel
 
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
+import com.snehil.moon_stays_androidapp.core.base.BaseViewModel
+import com.snehil.moon_stays_androidapp.core.common.NetworkResult
+import com.snehil.moon_stays_androidapp.domain.usecase.AddReviewUseCase
+import com.snehil.moon_stays_androidapp.domain.usecase.BookRoomUseCase
+import com.snehil.moon_stays_androidapp.domain.usecase.GetHotelInfoUseCase
+import com.snehil.moon_stays_androidapp.domain.usecase.GetReviewsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
+import java.math.BigDecimal
 import javax.inject.Inject
 
 data class RoomDto(
@@ -26,8 +29,43 @@ data class ReviewDto(
     val userName: String = "Voyager"
 )
 
+data class BookingRequest(
+    val hotelId: Int,
+    val roomId: Int,
+    val checkInDate: String,
+    val checkOutDate: String,
+    val roomsCount: Int,
+    val totalAmount: Double
+)
+
+// Helper mapping extensions
+fun com.snehil.moon_stays_androidapp.data.remote.dto.RoomDto.toDomain(): RoomDto {
+    return RoomDto(
+        id = this.id.toInt(),
+        types = this.types,
+        basePrice = this.basePrice.toDouble(),
+        capacity = this.capacity ?: 1,
+        amenities = this.amenities ?: emptyList()
+    )
+}
+
+fun com.snehil.moon_stays_androidapp.data.remote.dto.ReviewDto.toDomain(): ReviewDto {
+    return ReviewDto(
+        id = this.id?.toInt() ?: 0,
+        rating = this.rating,
+        content = this.content,
+        hotelId = this.hotelId?.toInt() ?: 0,
+        userName = "Voyager"
+    )
+}
+
 @HiltViewModel
-class HotelDetailViewModel @Inject constructor() : ViewModel() {
+class HotelDetailViewModel @Inject constructor(
+    private val getHotelInfoUseCase: GetHotelInfoUseCase,
+    private val bookRoomUseCase: BookRoomUseCase,
+    private val addReviewUseCase: AddReviewUseCase,
+    private val getReviewsUseCase: GetReviewsUseCase
+) : BaseViewModel() {
 
     private val _isBookingLoading = MutableStateFlow(false)
     val isBookingLoading: StateFlow<Boolean> = _isBookingLoading.asStateFlow()
@@ -35,53 +73,72 @@ class HotelDetailViewModel @Inject constructor() : ViewModel() {
     private val _isBookingSuccess = MutableStateFlow(false)
     val isBookingSuccess: StateFlow<Boolean> = _isBookingSuccess.asStateFlow()
 
-    // Mock room list source
-    private val allRooms = mapOf(
-        1 to listOf(
-            RoomDto(11, "Standard Capsule", 850.0, 1, listOf("Quantum Wifi", "Clean Air")),
-            RoomDto(12, "Zenith Sky Suite", 1450.0, 2, listOf("Gravity Control", "Personal Spa", "Transparent Ceiling"))
-        ),
-        2 to listOf(
-            RoomDto(21, "Neptune Sub Room", 1200.0, 2, listOf("Underwater View", "Private Bath")),
-            RoomDto(22, "Ocean Abyssal Suite", 2200.0, 4, listOf("Panoramic Dome View", "Private Submarine Ride"))
-        ),
-        3 to listOf(
-            RoomDto(31, "Neon Cyber Bed", 540.0, 1, listOf("Holo Screens", "Soundproof")),
-            RoomDto(32, "Retro Neon Loft", 980.0, 2, listOf("Infinity Bath", "Private Bar Access", "Synth Sound System"))
-        ),
-        4 to listOf(
-            RoomDto(41, "Green Bio Capsule", 620.0, 2, listOf("Natural Light", "Lush Forest Air")),
-            RoomDto(42, "Starlight Lake Villa", 1150.0, 3, listOf("Bio-dome lake access", "Organic breakfast", "Yoga terrace"))
-        )
-    )
+    private val _rooms = MutableStateFlow<List<RoomDto>>(emptyList())
+    val rooms: StateFlow<List<RoomDto>> = _rooms.asStateFlow()
 
-    // Reviews list state
-    private val _reviews = MutableStateFlow<Map<Int, List<ReviewDto>>>(
-        mapOf(
-            1 to listOf(
-                ReviewDto(1, 5, "Breathtaking sky view! The gravity control felt perfectly tuned.", 1, "Alice Chen"),
-                ReviewDto(2, 4, "Excellent experience, but the oxygen loop pressure fluctuated slightly in the morning.", 1, "Marcus Aurelius")
-            ),
-            2 to listOf(
-                ReviewDto(3, 5, "Sleeping under the Mariana Basin was unforgettable. Felt totally safe in the steel structure.", 2, "Bob D.")
-            )
-        )
-    )
+    // Reviews list state mapping hotelId to reviews
+    private val _reviews = MutableStateFlow<Map<Int, List<ReviewDto>>>(emptyMap())
     val reviews: StateFlow<Map<Int, List<ReviewDto>>> = _reviews.asStateFlow()
 
     fun getRoomsForHotel(hotelId: Int): List<RoomDto> {
-        return allRooms[hotelId] ?: emptyList()
+        // Return cached list for UI compat, but we load dynamically
+        return _rooms.value
     }
 
     fun getReviewsForHotel(hotelId: Int): List<ReviewDto> {
         return _reviews.value[hotelId] ?: emptyList()
     }
 
+    fun fetchHotelDetails(hotelId: Int) {
+        launchSafe {
+            getHotelInfoUseCase(hotelId.toLong()).collect { result ->
+                when (result) {
+                    is NetworkResult.Loading -> {
+                        _isLoading.value = true
+                    }
+                    is NetworkResult.Error -> {
+                        _isLoading.value = false
+                        _errorMessage.value = result.message
+                    }
+                    is NetworkResult.Success -> {
+                        _isLoading.value = false
+                        _rooms.value = result.data.rooms.map { it.toDomain() }
+                    }
+                }
+            }
+        }
+        fetchReviews(hotelId)
+    }
+
+    fun fetchReviews(hotelId: Int) {
+        launchSafe {
+            getReviewsUseCase(hotelId.toLong(), 0, 50).collect { result ->
+                when (result) {
+                    is NetworkResult.Success -> {
+                        val list = result.data.content.map { it.toDomain() }
+                        _reviews.value = _reviews.value + (hotelId to list)
+                    }
+                    else -> {}
+                }
+            }
+        }
+    }
+
     fun addReview(hotelId: Int, rating: Int, content: String) {
-        val currentReviews = _reviews.value[hotelId] ?: emptyList()
-        val nextId = (currentReviews.maxOfOrNull { it.id } ?: 0) + 1
-        val newReview = ReviewDto(nextId, rating, content, hotelId, "Voyager Snehi")
-        _reviews.value = _reviews.value + (hotelId to (listOf(newReview) + currentReviews))
+        launchSafe {
+            addReviewUseCase(hotelId.toLong(), rating, content).collect { result ->
+                when (result) {
+                    is NetworkResult.Success -> {
+                        // Refresh reviews
+                        fetchReviews(hotelId)
+                    }
+                    is NetworkResult.Error -> {
+                        _errorMessage.value = result.message
+                    }
+                    else -> {}
+                }
+            }
+        }
     }
 
     fun bookRoom(
@@ -93,21 +150,47 @@ class HotelDetailViewModel @Inject constructor() : ViewModel() {
         totalAmount: Double,
         onSuccess: (BookingRequest) -> Unit
     ) {
-        viewModelScope.launch {
-            _isBookingLoading.value = true
-            delay(1500)
-            _isBookingLoading.value = false
-            _isBookingSuccess.value = true
-            onSuccess(
-                BookingRequest(
-                    hotelId = hotelId,
-                    roomId = roomId,
-                    checkInDate = checkInDate,
-                    checkOutDate = checkOutDate,
-                    roomsCount = roomsCount,
-                    totalAmount = totalAmount
+        launchSafe {
+            val request = com.snehil.moon_stays_androidapp.data.remote.dto.BookingRequest(
+                hotelId = hotelId.toLong(),
+                roomId = roomId.toLong(),
+                checkInDate = checkInDate,
+                checkOutDate = checkOutDate,
+                roomsCount = roomsCount
+            )
+            // Empty guest details template
+            val guests = listOf(
+                com.snehil.moon_stays_androidapp.data.remote.dto.GuestDto(
+                    name = "Primary Guest",
+                    gender = "MALE",
+                    age = 30
                 )
             )
+            bookRoomUseCase(request, guests).collect { result ->
+                when (result) {
+                    is NetworkResult.Loading -> {
+                        _isBookingLoading.value = true
+                    }
+                    is NetworkResult.Error -> {
+                        _isBookingLoading.value = false
+                        _errorMessage.value = result.message
+                    }
+                    is NetworkResult.Success -> {
+                        _isBookingLoading.value = false
+                        _isBookingSuccess.value = true
+                        onSuccess(
+                            BookingRequest(
+                                hotelId = hotelId,
+                                roomId = roomId,
+                                checkInDate = checkInDate,
+                                checkOutDate = checkOutDate,
+                                roomsCount = roomsCount,
+                                totalAmount = totalAmount
+                            )
+                        )
+                    }
+                }
+            }
         }
     }
 
@@ -115,12 +198,3 @@ class HotelDetailViewModel @Inject constructor() : ViewModel() {
         _isBookingSuccess.value = false
     }
 }
-
-data class BookingRequest(
-    val hotelId: Int,
-    val roomId: Int,
-    val checkInDate: String,
-    val checkOutDate: String,
-    val roomsCount: Int,
-    val totalAmount: Double
-)

@@ -1,17 +1,19 @@
 package com.snehil.moon_stays_androidapp.mainui.signupscreen.viewmodel
 
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
+import com.snehil.moon_stays_androidapp.core.base.BaseViewModel
+import com.snehil.moon_stays_androidapp.core.common.NetworkResult
+import com.snehil.moon_stays_androidapp.data.remote.dto.SignUpRequestDto
+import com.snehil.moon_stays_androidapp.domain.usecase.SignUpUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class SignUpScreenViewModel @Inject constructor() : ViewModel() {
+class SignUpScreenViewModel @Inject constructor(
+    private val signUpUseCase: SignUpUseCase
+) : BaseViewModel() {
 
     private val _fullName = MutableStateFlow("")
     val fullName: StateFlow<String> = _fullName.asStateFlow()
@@ -33,9 +35,6 @@ class SignUpScreenViewModel @Inject constructor() : ViewModel() {
 
     private val _isHotelManager = MutableStateFlow(false)
     val isHotelManager: StateFlow<Boolean> = _isHotelManager.asStateFlow()
-
-    private val _isLoading = MutableStateFlow(false)
-    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
     private val _signUpSuccess = MutableStateFlow(false)
     val signUpSuccess: StateFlow<Boolean> = _signUpSuccess.asStateFlow()
@@ -76,12 +75,28 @@ class SignUpScreenViewModel @Inject constructor() : ViewModel() {
             _password.value != _confirmPassword.value
         ) return
 
-        viewModelScope.launch {
-            _isLoading.value = true
-            // Simulate API signup request delay
-            delay(1500)
-            _isLoading.value = false
-            _signUpSuccess.value = true
+        launchSafe {
+            val request = SignUpRequestDto(
+                email = _email.value,
+                password = _password.value,
+                name = _fullName.value
+            )
+            signUpUseCase(request, _isHotelManager.value).collect { result ->
+                when (result) {
+                    is NetworkResult.Loading -> {
+                        _isLoading.value = true
+                        _errorMessage.value = null
+                    }
+                    is NetworkResult.Error -> {
+                        _isLoading.value = false
+                        _errorMessage.value = result.message
+                    }
+                    is NetworkResult.Success -> {
+                        _isLoading.value = false
+                        _signUpSuccess.value = true
+                    }
+                }
+            }
         }
     }
 
@@ -89,3 +104,4 @@ class SignUpScreenViewModel @Inject constructor() : ViewModel() {
         _signUpSuccess.value = false
     }
 }
+

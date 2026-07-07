@@ -1,3 +1,10 @@
 node_modules/
 .idea/
 *.local
+.gradle/
+build/
+local.properties
+.vscode/
+*.png
+stitch_downloads/
+

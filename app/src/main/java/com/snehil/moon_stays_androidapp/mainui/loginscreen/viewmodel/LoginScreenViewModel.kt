@@ -1,17 +1,19 @@
 package com.snehil.moon_stays_androidapp.mainui.loginscreen.viewmodel
 
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
+import com.snehil.moon_stays_androidapp.core.base.BaseViewModel
+import com.snehil.moon_stays_androidapp.core.common.NetworkResult
+import com.snehil.moon_stays_androidapp.data.remote.dto.LoginDto
+import com.snehil.moon_stays_androidapp.domain.usecase.LoginUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class LoginScreenViewModel @Inject constructor() : ViewModel() {
+class LoginScreenViewModel @Inject constructor(
+    private val loginUseCase: LoginUseCase
+) : BaseViewModel() {
 
     private val _email = MutableStateFlow("")
     val email: StateFlow<String> = _email.asStateFlow()
@@ -21,9 +23,6 @@ class LoginScreenViewModel @Inject constructor() : ViewModel() {
 
     private val _passwordVisible = MutableStateFlow(false)
     val passwordVisible: StateFlow<Boolean> = _passwordVisible.asStateFlow()
-
-    private val _isLoading = MutableStateFlow(false)
-    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
     private val _loginSuccess = MutableStateFlow(false)
     val loginSuccess: StateFlow<Boolean> = _loginSuccess.asStateFlow()
@@ -43,12 +42,23 @@ class LoginScreenViewModel @Inject constructor() : ViewModel() {
     fun signIn() {
         if (_email.value.isBlank() || _password.value.isBlank()) return
 
-        viewModelScope.launch {
-            _isLoading.value = true
-            // Simulate API authentication request delay
-            delay(1500)
-            _isLoading.value = false
-            _loginSuccess.value = true
+        launchSafe {
+            loginUseCase(LoginDto(_email.value, _password.value)).collect { result ->
+                when (result) {
+                    is NetworkResult.Loading -> {
+                        _isLoading.value = true
+                        _errorMessage.value = null
+                    }
+                    is NetworkResult.Error -> {
+                        _isLoading.value = false
+                        _errorMessage.value = result.message
+                    }
+                    is NetworkResult.Success -> {
+                        _isLoading.value = false
+                        _loginSuccess.value = true
+                    }
+                }
+            }
         }
     }
 
@@ -56,3 +66,4 @@ class LoginScreenViewModel @Inject constructor() : ViewModel() {
         _loginSuccess.value = false
     }
 }
+

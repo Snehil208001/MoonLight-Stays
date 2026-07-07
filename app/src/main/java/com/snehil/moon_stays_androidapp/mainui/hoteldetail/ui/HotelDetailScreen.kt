@@ -44,7 +44,11 @@ fun HotelDetailScreen(
     modifier: Modifier = Modifier
 ) {
     val hotel = remember(hotelId) { dashboardViewModel.getHotelById(hotelId) }
-    val rooms = remember(hotelId) { detailViewModel.getRoomsForHotel(hotelId) }
+    val rooms by detailViewModel.rooms.collectAsState()
+
+    LaunchedEffect(hotelId) {
+        detailViewModel.fetchHotelDetails(hotelId)
+    }
 
     val checkInDate by dashboardViewModel.checkInDate.collectAsState()
     val checkOutDate by dashboardViewModel.checkOutDate.collectAsState()

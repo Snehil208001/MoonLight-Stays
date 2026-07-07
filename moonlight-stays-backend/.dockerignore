@@ -1,0 +1,10 @@
+.gradle
+build
+.git
+.gitignore
+Dockerfile
+docker-compose.yml
+.idea
+*.log
+README.md
+postman_collection.json
