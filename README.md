@@ -342,13 +342,35 @@ MoonLight-Stays/
 │   ├── public/
 │   └── package.json
 │
-├── app/                            # Android Jetpack Compose client
-│   ├── src/main/java/
-│   │   └── com/snehil/moon_stays_androidapp/
-│   │       ├── core/               # Navigation routes, Hilt modules, utilities
-│   │       ├── mainui/             # Glassmorphic UI Screens (Login, SignUp, Onboarding, Guest/Manager Dashboards, Details, Reviews)
-│   │       └── ui/theme/           # Cyberpunk color tokens & Compose shapes
-│   └── build.gradle.kts            # Application Gradle configurations
+├── app/                            # 📱 Native Android Client (Kotlin & Jetpack Compose)
+│   ├── src/main/java/com/snehil/moon_stays_androidapp/
+│   │   ├── MoonStaysApplication.kt # Hilt application entry point
+│   │   ├── MainActivity.kt        # Host activity setting Compose layout
+│   │   │
+│   │   ├── core/                  # Core modules (CookieJar, TokenAuthenticator, DI Modules)
+│   │   │   ├── common/            # SessionCookieJar, TokenAuthenticator, AuthInterceptor
+│   │   │   └── di/                # Dagger Hilt Modules (Network, Repository Injectors)
+│   │   │
+│   │   ├── domain/                # 🛠 Domain Layer (Clean Architecture business interactors)
+│   │   │   ├── model/             # Domain data structures (User, Booking, Hotel, Room)
+│   │   │   ├── repository/        # Repository abstract contracts (HotelRepository)
+│   │   │   └── usecase/           # Use Cases / Interactors (ValidatePromoCodeUseCase)
+│   │   │
+│   │   ├── data/                  # 🔌 Data Layer (Remote APIs, mapping, offline sync)
+│   │   │   ├── remote/            # Retrofit Services & network DTO structures
+│   │   │   ├── repository/        # Repository implementations fulfilling Domain rules
+│   │   │   └── local/             # SharedPreferences key-value caching engines
+│   │   │
+│   │   ├── mainui/                # 🎨 Presentation Layer (Compose Screens & ViewModels)
+│   │   │   ├── splashscreen/      # Fluid launch logo animations
+│   │   │   ├── onboarding/        # Sliding tutorials with onboarding flags
+│   │   │   ├── loginscreen/       # Form validations and auth states
+│   │   │   ├── dashboard/         # Guest & Manager UI tab layouts
+│   │   │   └── hoteldetail/       # Parallax detail scrolls and review Canvas elements
+│   │   │
+│   │   └── ui/                    # 🖌 Styling guidelines & design tokens
+│   │       └── theme/             # Midnight Glassmorphism styles (Color, Type, Theme)
+│   └── build.gradle.kts           # Module-level Gradle configuration settings
 │
 ├── .github/workflows/
 │   └── azure-deploy.yml            # CI/CD — Docker build, push to ACR, deploy to App Service
