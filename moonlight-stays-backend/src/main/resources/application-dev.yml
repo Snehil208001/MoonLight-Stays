@@ -1,9 +1,0 @@
-spring:
-  jpa:
-    hibernate:
-      ddl-auto: update
-    show-sql: false
-logging:
-  level:
-    com.moonlight.stays: DEBUG
-    org.hibernate.SQL: INFO

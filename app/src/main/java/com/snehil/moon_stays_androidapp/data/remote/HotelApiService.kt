@@ -43,4 +43,12 @@ interface HotelApiService {
     suspend fun getHotelAverageRating(
         @Path("hotelId") hotelId: Long
     ): Response<Double>
+
+    @GET("promocodes")
+    suspend fun getActivePromoCodes(): Response<List<com.snehil.moon_stays_androidapp.data.remote.dto.PromoCodeDto>>
+
+    @GET("promocodes/validate")
+    suspend fun validatePromoCode(
+        @Query("code") code: String
+    ): Response<com.snehil.moon_stays_androidapp.data.remote.dto.PromoValidationDto>
 }

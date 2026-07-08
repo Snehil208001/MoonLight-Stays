@@ -4,6 +4,7 @@ import com.snehil.moon_stays_androidapp.data.remote.dto.HotelDto
 import com.snehil.moon_stays_androidapp.data.remote.dto.RoomDto
 import com.snehil.moon_stays_androidapp.data.remote.dto.SurgeUpdateDto
 import com.snehil.moon_stays_androidapp.data.remote.dto.PromoCodeDto
+import okhttp3.MultipartBody
 import retrofit2.Response
 import retrofit2.http.*
 
@@ -55,4 +56,9 @@ interface AdminApiService {
 
     @DELETE("admin/promocodes/{id}")
     suspend fun deletePromoCode(@Path("id") id: Long): Response<Unit>
+
+    // Image Upload API (backend stores on filesystem and serves under /images/**)
+    @Multipart
+    @POST("upload/image")
+    suspend fun uploadImage(@Part file: MultipartBody.Part): Response<Map<String, String>>
 }

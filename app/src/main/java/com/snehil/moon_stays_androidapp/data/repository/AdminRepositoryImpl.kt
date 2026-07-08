@@ -75,4 +75,8 @@ class AdminRepositoryImpl @Inject constructor(
     override fun deletePromoCode(id: Long): Flow<NetworkResult<Unit>> = safeApiCall {
         adminApiService.deletePromoCode(id)
     }
+
+    override fun uploadImage(file: okhttp3.MultipartBody.Part): Flow<NetworkResult<Map<String, String>>> = safeApiCall {
+        adminApiService.uploadImage(file)
+    }
 }

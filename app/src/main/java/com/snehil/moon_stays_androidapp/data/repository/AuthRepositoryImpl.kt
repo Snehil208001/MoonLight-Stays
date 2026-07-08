@@ -17,7 +17,8 @@ import javax.inject.Singleton
 @Singleton
 class AuthRepositoryImpl @Inject constructor(
     private val authApiService: AuthApiService,
-    private val tokenManager: TokenManager
+    private val tokenManager: TokenManager,
+    private val sessionCookieJar: com.snehil.moon_stays_androidapp.core.common.SessionCookieJar
 ) : AuthRepository {
 
     override fun signup(signUpRequestDto: SignUpRequestDto): Flow<NetworkResult<UserDto>> {
@@ -87,6 +88,8 @@ class AuthRepositoryImpl @Inject constructor(
 
     override fun clearSession() {
         tokenManager.clear()
+        // Drop the httpOnly refreshToken cookie so the next user can't reuse it
+        sessionCookieJar.clear()
     }
 
     override fun updateProfile(name: String): Flow<NetworkResult<UserDto>> {

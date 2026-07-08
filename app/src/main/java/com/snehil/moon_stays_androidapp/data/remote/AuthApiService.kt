@@ -30,6 +30,11 @@ interface AuthApiService {
     @POST("auth/login")
     suspend fun login(@Body request: LoginDto): Response<LoginResponseDto>
 
+    // Relies on the httpOnly refreshToken cookie held by SessionCookieJar;
+    // normally invoked transparently by TokenAuthenticator on a 401.
+    @POST("auth/refresh")
+    suspend fun refreshToken(): Response<LoginResponseDto>
+
     @POST("auth/logout")
     suspend fun logout(): Response<Unit>
 

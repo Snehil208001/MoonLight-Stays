@@ -53,4 +53,12 @@ class HotelRepositoryImpl @Inject constructor(
         android.util.Log.d("HotelRepository", "getHotelAverageRating - hotelId: $hotelId")
         return safeApiCall { hotelApiService.getHotelAverageRating(hotelId) }
     }
+
+    override fun getActivePromoCodes(): Flow<NetworkResult<List<com.snehil.moon_stays_androidapp.data.remote.dto.PromoCodeDto>>> {
+        return safeApiCall { hotelApiService.getActivePromoCodes() }
+    }
+
+    override fun validatePromoCode(code: String): Flow<NetworkResult<com.snehil.moon_stays_androidapp.data.remote.dto.PromoValidationDto>> {
+        return safeApiCall { hotelApiService.validatePromoCode(code) }
+    }
 }

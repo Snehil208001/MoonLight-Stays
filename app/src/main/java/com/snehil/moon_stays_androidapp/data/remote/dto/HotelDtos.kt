@@ -79,3 +79,10 @@ data class SurgeUpdateDto(
     val endDate: String
 )
 
+// Response of GET /promocodes/validate; code/discountPercentage are null when valid=false
+data class PromoValidationDto(
+    val valid: Boolean,
+    val code: String? = null,
+    val discountPercentage: Int? = null
+)
+

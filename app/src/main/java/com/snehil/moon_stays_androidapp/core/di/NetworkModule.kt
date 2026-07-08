@@ -1,6 +1,8 @@
 package com.snehil.moon_stays_androidapp.core.di
 
 import com.snehil.moon_stays_androidapp.core.common.AuthInterceptor
+import com.snehil.moon_stays_androidapp.core.common.SessionCookieJar
+import com.snehil.moon_stays_androidapp.core.common.TokenAuthenticator
 import com.snehil.moon_stays_androidapp.data.remote.*
 import com.google.gson.Gson
 import dagger.Module
@@ -28,8 +30,9 @@ annotation class ModernRetrofit
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
 
-    // Monolith Core Client Base URL (uses 10.0.2.2 inside Android Emulators to reach localhost:8080)
-    private const val LEGACY_BASE_URL = "http://10.0.2.2:8080/api/v1/"
+    // Monolith Core Client Base URL — deployed Azure backend.
+    // For a local backend, use "http://10.0.2.2:8080/api/v1/" (emulator alias for localhost:8080).
+    private const val LEGACY_BASE_URL = "https://moonlight-stays-backend-d6hga6dtg6c3cya2.centralindia-01.azurewebsites.net/api/v1/"
     
     // Modern Restructured Core Client Base URL
     private const val MODERN_BASE_URL = "https://moonlight-stays-backend-d6hga6dtg6c3cya2.centralindia-01.azurewebsites.net/api/v1/"
@@ -52,9 +55,15 @@ object NetworkModule {
     @Singleton
     fun provideOkHttpClient(
         authInterceptor: Interceptor,
-        loggingInterceptor: HttpLoggingInterceptor
+        loggingInterceptor: HttpLoggingInterceptor,
+        sessionCookieJar: SessionCookieJar,
+        tokenAuthenticator: TokenAuthenticator
     ): OkHttpClient {
         return OkHttpClient.Builder()
+            // Keeps the httpOnly refreshToken cookie set by POST /auth/login
+            .cookieJar(sessionCookieJar)
+            // Refreshes the access token via POST /auth/refresh on 401 and retries once
+            .authenticator(tokenAuthenticator)
             .addInterceptor(authInterceptor)
             .addInterceptor(loggingInterceptor)
             .connectTimeout(30, TimeUnit.SECONDS)

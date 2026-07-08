@@ -25,4 +25,6 @@ interface AdminRepository {
     fun getPromoCodes(): Flow<NetworkResult<List<PromoCodeDto>>>
     fun createPromoCode(promo: PromoCodeDto): Flow<NetworkResult<PromoCodeDto>>
     fun deletePromoCode(id: Long): Flow<NetworkResult<Unit>>
+
+    fun uploadImage(file: okhttp3.MultipartBody.Part): Flow<NetworkResult<Map<String, String>>>
 }

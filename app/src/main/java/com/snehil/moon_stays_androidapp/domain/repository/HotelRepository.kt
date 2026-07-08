@@ -27,4 +27,8 @@ interface HotelRepository {
     ): Flow<NetworkResult<com.snehil.moon_stays_androidapp.data.remote.dto.PageDto<com.snehil.moon_stays_androidapp.data.remote.dto.ReviewDto>>>
 
     fun getHotelAverageRating(hotelId: Long): Flow<NetworkResult<Double>>
+
+    fun getActivePromoCodes(): Flow<NetworkResult<List<com.snehil.moon_stays_androidapp.data.remote.dto.PromoCodeDto>>>
+
+    fun validatePromoCode(code: String): Flow<NetworkResult<com.snehil.moon_stays_androidapp.data.remote.dto.PromoValidationDto>>
 }

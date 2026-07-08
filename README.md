@@ -298,7 +298,23 @@ Push to `main` — the [azure-deploy.yml](./.github/workflows/azure-deploy.yml) 
 | **Bookings** | `POST /bookings/init`, `POST /bookings/{id}/payments` |
 | **Admin** | `POST /admin/hotels`, `GET /admin/hotels`, `PATCH /admin/hotels/{id}/surge` |
 
-**Full API docs**: [Swagger UI](https://moonlight-stays-backend-d6hga6dtg6c3cya2.centralindia-01.azurewebsites.net/api/v1/swagger-ui.html)
+### 📖 Swagger API Documentation
+
+The backend REST API is fully documented using **Springdoc OpenAPI / Swagger UI**. This provides an interactive sandbox to explore, test, and run the API endpoints.
+
+| Environment | Swagger UI Endpoint | OpenAPI Specification (JSON) |
+|-------------|---------------------|-----------------------------|
+| **Local Development** | [http://localhost:8080/api/v1/swagger-ui.html](http://localhost:8080/api/v1/swagger-ui.html) | [http://localhost:8080/api/v1/v3/api-docs](http://localhost:8080/api/v1/v3/api-docs) |
+| **Production Azure** | [https://moonlight-stays-backend-d6hga6dtg6c3cya2.centralindia-01.azurewebsites.net/api/v1/swagger-ui.html](https://moonlight-stays-backend-d6hga6dtg6c3cya2.centralindia-01.azurewebsites.net/api/v1/swagger-ui.html) | [https://moonlight-stays-backend-d6hga6dtg6c3cya2.centralindia-01.azurewebsites.net/api/v1/v3/api-docs](https://moonlight-stays-backend-d6hga6dtg6c3cya2.centralindia-01.azurewebsites.net/api/v1/v3/api-docs) |
+
+#### Testing Secured Endpoints (JWT Bearer Token)
+Many endpoints require authentication (such as booking management, user profiles, or administrator views). To run these endpoints directly from Swagger:
+1. Obtain an access token by executing the `/auth/login` endpoint with your credentials.
+2. Copy the `accessToken` value from the response.
+3. Click the green **Authorize** button at the top right of the Swagger UI page.
+4. Enter the token in the following format: `Bearer <your_copied_token>` (make sure to include the `Bearer ` prefix with a space).
+5. Click **Authorize** and close the modal. All subsequent requests from the Swagger UI will automatically include the authentication header.
+
 
 ---
 
