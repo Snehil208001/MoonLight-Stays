@@ -48,6 +48,7 @@
 
 | Aspect | Implementation |
 |--------|----------------|
+| **Android Client** | Kotlin, Jetpack Compose, Dagger Hilt, Retrofit/OkHttp, Session CookieJar & JWT Token Authenticator, custom Canvas animations |
 | **Backend** | Java 17, Spring Boot 3.5, Spring Data JPA, Spring Security (JWT) |
 | **Frontend** | Next.js 14 (App Router), React 18, TypeScript, Redux Toolkit, Tailwind CSS, Framer Motion |
 | **Database** | PostgreSQL with complex relational models (hotels, rooms, bookings, reviews, promo codes) |
@@ -55,6 +56,7 @@
 | **Auth** | JWT with refresh tokens, role-based access (Guest / Hotel Manager) |
 | **Design Patterns** | Strategy pattern for dynamic room pricing (surge, holiday, occupancy-based) |
 | **DevOps** | Azure App Service (backend, Docker), Azure Container Registry, GitHub Actions CI/CD |
+
 
 ---
 
