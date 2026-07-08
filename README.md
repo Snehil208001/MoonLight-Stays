@@ -203,25 +203,82 @@ flowchart TD
 
 ---
 
-## 📱 Android Client Architecture
+## 📱 Android Client Architecture & Engineering Deep-Dive
 
-The mobile client is a modern, reactive Kotlin application built with **Jetpack Compose** and **Clean Architecture** patterns.
+The mobile client is a production-grade, offline-ready native Android application written in **Kotlin** and built 100% on **Jetpack Compose**. It implements **Clean Architecture** principles by segregating concerns into distinct layers: UI (presentation), Domain (business logic), and Data (remote APIs and mapping).
 
-### Technical Architecture
-- **MVI / MVVM Design Pattern**: ViewModels manage screen states reactively using StateFlow, keeping layouts purely declarative.
-- **Dependency Injection**: Powered by **Dagger Hilt** for modular, testable, and maintainable services.
-- **Robust Network Layer**: Retrofit + OkHttp with:
-  - `SessionCookieJar`: Keeps the secure HTTP-Only `refreshToken` cookie set by the `/auth/login` endpoint.
-  - `TokenAuthenticator`: Intercepts `401 Unauthorized` errors, requests a new access token via `/auth/refresh`, and transparently retries the failed request.
-- **Repository Pattern**: Abstracted repository interfaces split across distinct features (Auth, Booking, Hotel, Admin) for high testability.
+---
 
-### 🎨 Graphics & Fluid Animations
-The Android app implements the unified **Midnight Glassmorphism** design system with rich, interactive transitions:
-- **Neon Glow Rings & Highlights**: Uses custom Canvas drawing functions to render glowing buttons and indicators in Cyan (`#00FFFF`) and Coral (`#FF7F50`).
-- **Frosted Glass Cards**: Uses Compose modifiers to draw semi-transparent overlays (`Color.White.copy(alpha = 0.05f)`) with custom shadows.
-- **Fluid Screen Transitions**: Animated content entries using `AnimatedVisibility` and smooth horizontal/vertical slide transitions during Navigation.
-- **Lottie Micro-interactions**: Smooth animated checks, loading rings, and empty-state illustrations that bring the UI to life.
-- **Parallax Scroll Effects**: Hotel detail pages feature parallax image scaling and header transitions.
+### 🏛 Architectural Layering
+
+#### 1. Domain Layer (Pure Business Logic)
+The domain layer defines the core contract of the application. It contains **Entities**, **Repository Interfaces**, and **Use Cases (Interactors)**. By keeping it free of Android framework dependencies, it remains highly testable and robust.
+- **Use Cases:** Every business action is encapsulated in a single, reusable class. For example:
+  - [GetActivePromoCodesUseCase](file:///C:/Users/snehi/OneDrive/Desktop/AirBnb_BackEnd/app/src/main/java/com/snehil/moon_stays_androidapp/domain/usecase/GetActivePromoCodesUseCase.kt) — Retrieves and filters valid promotions.
+  - [ValidatePromoCodeUseCase](file:///C:/Users/snehi/OneDrive/Desktop/AirBnb_BackEnd/app/src/main/java/com/snehil/moon_stays_androidapp/domain/usecase/ValidatePromoCodeUseCase.kt) — Performs client-side validation logic.
+  - [UploadImageUseCase](file:///C:/Users/snehi/OneDrive/Desktop/AirBnb_BackEnd/app/src/main/java/com/snehil/moon_stays_androidapp/domain/usecase/UploadImageUseCase.kt) — Encapsulates image packaging and multipart requests.
+- **Repository Contracts:** Domain interfaces like [HotelRepository](file:///C:/Users/snehi/OneDrive/Desktop/AirBnb_BackEnd/app/src/main/java/com/snehil/moon_stays_androidapp/domain/repository/HotelRepository.kt) isolate business logic from remote network implementation.
+
+#### 2. Presentation Layer (Reactive Declarative UI)
+Built entirely using Jetpack Compose, state is managed in a unidirectional data flow (UDF):
+- **State Hoisting:** Compose screens are stateless composables that accept state parameters and propagate events upward to ViewModels.
+- **StateFlow & UI States:** ViewModels like [HotelDetailViewModel](file:///C:/Users/snehi/OneDrive/Desktop/AirBnb_BackEnd/app/src/main/java/com/snehil/moon_stays_androidapp/mainui/hoteldetail/viewmodel/HotelDetailViewModel.kt) expose screen state reactively via Kotlin `StateFlow`.
+- **Cyberpunk / Midnight Glassmorphism Theme:** All UI tokens (from `tokens.json`) are translated into Kotlin color definitions, dimensions, shapes, and font typographies inside [ui/theme/](file:///C:/Users/snehi/OneDrive/Desktop/AirBnb_BackEnd/app/src/main/java/com/snehil/moon_stays_androidapp/ui/theme/) to enforce visual parity.
+
+#### 3. Data Layer (Decoupled APIs & Repositories)
+Handles raw data access, networking, and DTO mapping.
+- **API Services:** Declarative Retrofit interfaces mapped to REST routes:
+  - [AuthApiService](file:///C:/Users/snehi/OneDrive/Desktop/AirBnb_BackEnd/app/src/main/java/com/snehil/moon_stays_androidapp/data/remote/AuthApiService.kt) — signup, login, refresh.
+  - [HotelApiService](file:///C:/Users/snehi/OneDrive/Desktop/AirBnb_BackEnd/app/src/main/java/com/snehil/moon_stays_androidapp/data/remote/HotelApiService.kt) — browsing, ratings, reviews.
+  - [AdminApiService](file:///C:/Users/snehi/OneDrive/Desktop/AirBnb_BackEnd/app/src/main/java/com/snehil/moon_stays_androidapp/data/remote/AdminApiService.kt) — hotel creations and updates.
+- **Repository Implementations:** Classes like [HotelRepositoryImpl](file:///C:/Users/snehi/OneDrive/Desktop/AirBnb_BackEnd/app/src/main/java/com/snehil/moon_stays_androidapp/data/repository/HotelRepositoryImpl.kt) coordinate remote requests and map network DTOs (e.g. [HotelDtos](file:///C:/Users/snehi/OneDrive/Desktop/AirBnb_BackEnd/app/src/main/java/com/snehil/moon_stays_androidapp/data/remote/dto/HotelDtos.kt)) into clean Domain entities.
+
+---
+
+### 🔌 Advanced Network & Auth Flow (Recruiter Deep-Dive)
+
+Handling authentication securely is one of the most critical aspects of production apps. This client handles JWT access and refresh tokens completely transparently at the OkHttp layer:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as Compose View
+    participant VM as ViewModel
+    participant Repo as Repository
+    participant OK as OkHttpClient
+    participant Auth as TokenAuthenticator
+    participant API as Azure REST Server
+
+    User->>VM: Trigger Action (e.g. Book Room)
+    VM->>Repo: Request API call
+    Repo->>OK: Execute REST request (include Auth Header)
+    OK->>API: Send Request with Access Token (Expired)
+    API-->>OK: Return 401 Unauthorized
+    OK->>Auth: Intercept 401 & Trigger Authenticator
+    Note over Auth: Synchronized Token Rotation Block
+    Auth->>API: POST /auth/refresh (using CookieJar refresh token)
+    API-->>Auth: Return New Access Token
+    Auth->>Auth: Save New Access Token to local cache
+    Auth-->>OK: Re-sign request with new Bearer Header
+    OK->>API: Retry original request
+    API-->>OK: Return 200 OK (Success Response)
+    OK-->>Repo: Unwrapped DTO Result
+    Repo-->>VM: Map to Domain Entity
+    VM-->>User: Update StateFlow (Refresh UI)
+```
+
+- **Session Tracking via [SessionCookieJar](file:///C:/Users/snehi/OneDrive/Desktop/AirBnb_BackEnd/app/src/main/java/com/snehil/moon_stays_androidapp/core/common/SessionCookieJar.kt):** Spring Boot returns a secure HTTP-Only `refreshToken` cookie on login. Since standard Retrofit calls don't persist cookies across app sessions, a custom `CookieJar` implementation stores and includes this cookie automatically in `/auth/refresh` requests.
+- **Automatic Recovery via [TokenAuthenticator](file:///C:/Users/snehi/OneDrive/Desktop/AirBnb_BackEnd/app/src/main/java/com/snehil/moon_stays_androidapp/core/common/TokenAuthenticator.kt):** Standard requests include the current access token. If it expires and the server returns `401 Unauthorized`, the custom OkHttp `Authenticator` intercepts the response, launches a synchronized blocking request to refresh the token, saves the new token to memory/disk, re-signs the original request, and retries it automatically. The user experiences absolutely zero session interruption!
+
+---
+
+### 🎨 Premium UI Graphics & Fluid Animations
+
+To achieve the "Midnight Glassmorphism" style, the UI relies on custom Compose canvas manipulation and micro-interactions:
+- **Custom Glow Rings:** The app utilizes drawing scopes in Compose Canvas to draw rings with radial gradient brushes and drop shadows (`Paint.asFrameworkPaint().setShadowLayer`), creating realistic neon glow effects for active status buttons.
+- **Glass Frosted Surfaces:** Semi-transparent backdrops (`Color.White.copy(alpha = 0.08f)`) are coupled with layered custom borders and subtle inner shadows to simulate depth without native system blur overhead.
+- **Navigation Transitions:** Custom screen-slide animations defined inside Navigation graphs using `AnimatedVisibility` and slide transitions create fluid, organic transitions when switching between Hotel Details, Reviews, and Booking steps.
+- **Interactive States:** Floating Action Buttons (FABs) scale and morph color dynamically based on scrolling velocity. Ripple propagation effects are color-tailored using custom ripple themes.
 
 ---
 
@@ -400,15 +457,23 @@ Many endpoints require authentication (such as booking management, user profiles
 
 ---
 
-## 🌟 Highlights for Recruiters
+## 🌟 Highlights for Android & Full-Stack Recruiters
 
-- **Full-stack ownership** — UI, API, database, deployment
-- **Production deployment** — Live on Azure (App Service, Container Registry, GitHub Actions CI/CD)
-- **Modern stack** — Spring Boot 3, Next.js 14, TypeScript
-- **Payments** — Stripe Checkout with webhook integration
-- **Design patterns** — Strategy pattern for dynamic pricing
-- **Auth** — JWT with refresh tokens, role-based access
-- **Responsive UI** — Dark-mode glassmorphism, Framer Motion
+This repository showcases production-grade mobile engineering and full-stack ownership. If you are an Android technical recruiter or engineering manager, here are the key highlights to look for in the code:
+
+### 🤖 Core Android Engineering Excellence
+- **Clean Architecture & Domain Separation:** Logic is fully isolated into clean abstractions. Check out the [domain Use Cases](file:///C:/Users/snehi/OneDrive/Desktop/AirBnb_BackEnd/app/src/main/java/com/snehil/moon_stays_androidapp/domain/usecase/) (e.g. [ValidatePromoCodeUseCase](file:///C:/Users/snehi/OneDrive/Desktop/AirBnb_BackEnd/app/src/main/java/com/snehil/moon_stays_androidapp/domain/usecase/ValidatePromoCodeUseCase.kt)) which encapsulate business rules separate from data sources or UI.
+- **Modern Jetpack Compose UI:** The entire interface is built with declarative Jetpack Compose using state hoisting, unidirectional data flow (UDF), and state-hoisted ViewModels. See [HotelDetailViewModel](file:///C:/Users/snehi/OneDrive/Desktop/AirBnb_BackEnd/app/src/main/java/com/snehil/moon_stays_androidapp/mainui/hoteldetail/viewmodel/HotelDetailViewModel.kt).
+- **Advanced OkHttp & Session Recovery:**
+  - **Auto-Refreshing JWT Auth:** The [TokenAuthenticator](file:///C:/Users/snehi/OneDrive/Desktop/AirBnb_BackEnd/app/src/main/java/com/snehil/moon_stays_androidapp/core/common/TokenAuthenticator.kt) handles thread-safe Token Rotation. When a 401 occurs, it halts requests, requests a refresh token, updates cache, and retries the failed requests.
+  - **Session Cookie management:** The [SessionCookieJar](file:///C:/Users/snehi/OneDrive/Desktop/AirBnb_BackEnd/app/src/main/java/com/snehil/moon_stays_androidapp/core/common/SessionCookieJar.kt) handles preserving secure `HttpOnly` refresh token cookies across sessions.
+- **Dependency Injection (Dagger Hilt):** Modules are cleanly decoupled for networking, data repositories, and use cases. See [NetworkModule](file:///C:/Users/snehi/OneDrive/Desktop/AirBnb_BackEnd/app/src/main/java/com/snehil/moon_stays_androidapp/core/di/NetworkModule.kt).
+- **Premium UX Animations & UI Polish:** Check out the cyberpunk/midnight theme in [ui/theme/](file:///C:/Users/snehi/OneDrive/Desktop/AirBnb_BackEnd/app/src/main/java/com/snehil/moon_stays_androidapp/ui/theme/) and interactive Compose canvas renderings.
+
+### 🔌 Full-Stack & System Integration
+- **Zero-Downtime Azure Deployment:** Deployed via Docker container on Azure App Service and private ACR with automated CI/CD GitHub Actions.
+- **Spring Boot 3.5 Monolithic Backend:** Secure JWT configurations, transactional JPA storage, and a decorator-chained **Strategy Pattern** for dynamic surge and occupancy pricing.
+- **Swagger Interactive API:** Fully documented REST endpoints accessible locally and in production via Swagger OpenAPI.
 
 ---
 
