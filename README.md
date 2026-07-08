@@ -29,10 +29,11 @@
 - [Live Demo](#-live-demo)
 - [Features](#-features)
 - [Tech Stack](#-tech-stack)
-- [Architecture](#-architecture)
+- [Architecture & System Design](#-architecture--cloud-infrastructure)
+- [Android Client Architecture](#-android-client-architecture)
+- [Azure Cloud Infrastructure & CI/CD](#-azure-cloud-infrastructure--cicd-pipeline)
 - [Project Structure](#-project-structure)
 - [Getting Started](#-getting-started)
-- [Deployment](#-deployment)
 - [API Overview](#-api-overview)
 - [Documentation](#-documentation)
 - [License](#-license)
@@ -124,16 +125,6 @@
 | **Framer Motion** | Animations |
 | **Lucide React** | Icons |
 
-### DevOps & Deployment
-
-| Service | Purpose |
-|---------|---------|
-| **Azure App Service** | Backend hosting (Docker container) |
-| **Azure Container Registry** | Stores backend Docker images |
-| **GitHub Actions** | CI/CD — builds and deploys on push |
-| **PostgreSQL** | Production database |
-| **Stripe** | Payment processing |
-
 ### Android App Client
 
 | Technology | Purpose |
@@ -143,6 +134,16 @@
 | **Hilt (Dagger)** | Dependency Injection |
 | **Retrofit / OkHttp** | Network HTTP client |
 | **State-Hoisted ViewModels** | Clean reactive MVI/MVVM design |
+
+### DevOps & Deployment
+
+| Service | Purpose |
+|---------|---------|
+| **Azure App Service** | Backend hosting (Docker container) |
+| **Azure Container Registry** | Stores backend Docker images |
+| **GitHub Actions** | CI/CD — builds and deploys on push |
+| **PostgreSQL** | Production database |
+| **Stripe** | Payment processing |
 
 ---
 
