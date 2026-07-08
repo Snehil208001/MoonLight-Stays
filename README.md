@@ -92,6 +92,17 @@
 | **Image Uploads** | Add hotel and room photos with preview |
 | **Promo Codes** | Create discount codes with percentage or fixed amount |
 
+### Android App Features 🤖
+
+| Feature | Mobile Implementation Details |
+|---------|-------------------------------|
+| **Reactive UI/UX** | Native Jetpack Compose screen rendering with state-hoisting and unidirectional data flow |
+| **Silent JWT Refresh** | OkHttp `TokenAuthenticator` transparently requests new access tokens via `/auth/refresh` on expired requests |
+| **Session Persistence** | Custom `SessionCookieJar` preserves `HttpOnly` refresh token cookies across application runs |
+| **Frosted Glassmorphism** | Custom Composables styled with semi-transparent overlays, neon gradient strokes, and radial glow rings |
+| **Fluid Navigation** | Seamless transition slides, state-dependent color transformations, and animated visibilities |
+| **Local Settings & Flags** | SharedPreferences session caching and dynamic environment selection |
+
 ### Technical Features ⚙️
 
 - **Strategy Design Pattern** — Handles complex, dynamic room pricing (surge, holiday, occupancy-based)
