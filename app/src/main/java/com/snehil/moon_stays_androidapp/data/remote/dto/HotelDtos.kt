@@ -23,9 +23,9 @@ data class HotelContactInfo(
 )
 
 data class HotelDto(
-    val id: Long,
-    val name: String,
-    val city: String,
+    val id: Long?,
+    val name: String?,
+    val city: String?,
     val photos: List<String>?,
     val amenities: List<String>?,
     val contactInfo: HotelContactInfo?,
@@ -38,9 +38,9 @@ data class HotelPriceDto(
 )
 
 data class RoomDto(
-    val id: Long,
-    val types: String,
-    val basePrice: BigDecimal,
+    val id: Long?,
+    val types: String?,
+    val basePrice: BigDecimal?,
     val photos: List<String>?,
     val amenities: List<String>?,
     val totalCount: Int?,
@@ -64,5 +64,18 @@ data class ReviewDto(
     val content: String,
     val hotelId: Long?,
     val userId: Long?
+)
+
+data class PromoCodeDto(
+    val id: Long? = null,
+    val code: String,
+    val discountPercentage: Int,
+    val active: Boolean? = true
+)
+
+data class SurgeUpdateDto(
+    val surgeFactor: BigDecimal,
+    val startDate: String,
+    val endDate: String
 )
 

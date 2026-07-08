@@ -1,7 +1,7 @@
 # Quick API test after CI/CD deploy
 # Usage: .\test-api.ps1
 
-$baseUrl = "http://moonlight-stays.ap-south-1.elasticbeanstalk.com/api/v1"
+$baseUrl = "https://moonlight-stays-backend-d6hga6dtg6c3cya2.centralindia-01.azurewebsites.net/api/v1"
 $today = (Get-Date).ToString("yyyy-MM-dd")
 $tomorrow = (Get-Date).AddDays(1).ToString("yyyy-MM-dd")
 

@@ -8,13 +8,13 @@
 [![Next.js](https://img.shields.io/badge/Next.js-14-000000?style=for-the-badge&logo=nextdotjs&logoColor=white)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
-[![AWS](https://img.shields.io/badge/AWS-Amplify%20%7C%20EB%20%7C%20RDS-FF9900?style=for-the-badge&logo=amazonaws&logoColor=white)](https://aws.amazon.com/)
+[![Azure](https://img.shields.io/badge/Azure-App%20Service%20%7C%20ACR-0078D4?style=for-the-badge&logo=microsoftazure&logoColor=white)](https://azure.microsoft.com/)
 [![Stripe](https://img.shields.io/badge/Stripe-Payments-635BFF?style=for-the-badge&logo=stripe&logoColor=white)](https://stripe.com/)
 [![Android](https://img.shields.io/badge/Android-Kotlin-3DDC84?style=for-the-badge&logo=android&logoColor=white)](https://developer.android.com/)
 
-**Full-stack hotel booking application** with dynamic pricing, Stripe payments, role-based access, and production AWS deployment.
+**Full-stack hotel booking application** with dynamic pricing, Stripe payments, role-based access, and production Azure deployment.
 
-[Live Demo](https://main.d30tl6vi1qydms.amplifyapp.com) · [API Docs](http://v2-0.eba-hk6i6byc.ap-south-1.elasticbeanstalk.com/api/v1/swagger-ui.html) · [Report Bug](https://github.com/Snehil208001/MoonLight-Stays/issues) · [Request Feature](https://github.com/Snehil208001/MoonLight-Stays/issues)
+[API Docs](https://moonlight-stays-backend-d6hga6dtg6c3cya2.centralindia-01.azurewebsites.net/api/v1/swagger-ui.html) · [Report Bug](https://github.com/Snehil208001/MoonLight-Stays/issues) · [Request Feature](https://github.com/Snehil208001/MoonLight-Stays/issues)
 
 </div>
 
@@ -50,7 +50,7 @@
 | **Payments** | Stripe Checkout with webhook verification |
 | **Auth** | JWT with refresh tokens, role-based access (Guest / Hotel Manager) |
 | **Design Patterns** | Strategy pattern for dynamic room pricing (surge, holiday, occupancy-based) |
-| **DevOps** | AWS Amplify (frontend), Elastic Beanstalk (backend), RDS (database), custom deployment scripts |
+| **DevOps** | Azure App Service (backend, Docker), Azure Container Registry, GitHub Actions CI/CD |
 
 ---
 
@@ -58,9 +58,8 @@
 
 | Resource | URL |
 |----------|-----|
-| **Frontend** | [https://main.d30tl6vi1qydms.amplifyapp.com](https://main.d30tl6vi1qydms.amplifyapp.com) |
-| **Backend API** | [http://v2-0.eba-hk6i6byc.ap-south-1.elasticbeanstalk.com/api/v1](http://v2-0.eba-hk6i6byc.ap-south-1.elasticbeanstalk.com/api/v1) |
-| **API Docs (Swagger)** | [http://v2-0.eba-hk6i6byc.ap-south-1.elasticbeanstalk.com/api/v1/swagger-ui.html](http://v2-0.eba-hk6i6byc.ap-south-1.elasticbeanstalk.com/api/v1/swagger-ui.html) |
+| **Backend API** | [https://moonlight-stays-backend-d6hga6dtg6c3cya2.centralindia-01.azurewebsites.net/api/v1](https://moonlight-stays-backend-d6hga6dtg6c3cya2.centralindia-01.azurewebsites.net/api/v1) |
+| **API Docs (Swagger)** | [https://moonlight-stays-backend-d6hga6dtg6c3cya2.centralindia-01.azurewebsites.net/api/v1/swagger-ui.html](https://moonlight-stays-backend-d6hga6dtg6c3cya2.centralindia-01.azurewebsites.net/api/v1/swagger-ui.html) |
 
 ---
 
@@ -126,9 +125,10 @@
 
 | Service | Purpose |
 |---------|---------|
-| **AWS Amplify** | Frontend hosting, CDN, HTTPS |
-| **AWS Elastic Beanstalk** | Backend hosting, EC2, load balancer |
-| **Amazon RDS** | Managed PostgreSQL |
+| **Azure App Service** | Backend hosting (Docker container) |
+| **Azure Container Registry** | Stores backend Docker images |
+| **GitHub Actions** | CI/CD — builds and deploys on push |
+| **PostgreSQL** | Production database |
 | **Stripe** | Payment processing |
 
 ### Android App Client
@@ -146,31 +146,31 @@
 ## 🏗 Architecture
 
 ```
-┌─────────────────────┐         HTTPS          ┌──────────────────────┐         HTTP          ┌─────────────────────────┐
-│   AWS Amplify       │ ◄────────────────────► │  Next.js Frontend    │ ◄───────────────────► │  Elastic Beanstalk      │
-│   (CDN + Hosting)   │                         │  /api/v1 → proxy     │                       │  (Spring Boot API)      │
+┌─────────────────────┐         HTTPS          ┌──────────────────────┐        HTTPS          ┌─────────────────────────┐
+│   Web / Android     │ ◄────────────────────► │  Next.js Frontend    │ ◄───────────────────► │  Azure App Service      │
+│   Clients           │                         │  /api/v1 → proxy     │                       │  (Spring Boot, Docker)  │
 └─────────────────────┘                         └──────────────────────┘                       └────────────┬────────────┘
                                                                                                                     │
                                                                                                                     │ JDBC
                                                                                                                     ▼
                                                                                                          ┌─────────────────────────┐
-                                                                                                         │   Amazon RDS             │
-                                                                                                         │   (PostgreSQL)           │
+                                                                                                         │   PostgreSQL             │
+                                                                                                         │   (Production DB)        │
                                                                                                          └─────────────────────────┘
 ```
 
 ### Request Flow
 
-1. **User** visits Amplify URL (HTTPS) → Next.js serves the React app
-2. **API calls** go to `/api/v1/*` → Next.js rewrites proxy to Elastic Beanstalk backend
-3. **Backend** validates JWT, processes request, queries RDS
+1. **User** opens the web app → Next.js serves the React app (the Android app talks to the API directly)
+2. **API calls** go to `/api/v1/*` → Next.js rewrites proxy to the Azure App Service backend
+3. **Backend** validates JWT, processes request, queries PostgreSQL
 4. **Stripe** webhooks notify backend on payment completion
 
 ### Why This Architecture?
 
-- **Next.js proxy** — Avoids CORS and mixed-content (HTTPS frontend → HTTP backend)
-- **RDS** — Managed PostgreSQL with backups and scaling
-- **Elastic Beanstalk** — Handles EC2, load balancer, auto-scaling for Java
+- **Next.js proxy** — Avoids CORS issues by proxying API calls server-side
+- **Azure App Service** — Runs the Dockerized Spring Boot backend with HTTPS out of the box
+- **GitHub Actions** — Every push builds a Docker image, pushes it to Azure Container Registry, and deploys it
 
 ---
 
@@ -190,8 +190,6 @@ MoonLight-Stays/
 │   ├── src/main/resources/
 │   │   ├── application.properties
 │   │   └── application-prod.properties
-│   ├── .ebextensions/              # EB config (swap, timeout, env)
-│   ├── Procfile                    # Java run command
 │   └── pom.xml
 │
 ├── moonlight-stays/                # Next.js frontend
@@ -210,11 +208,9 @@ MoonLight-Stays/
 │   │       └── ui/theme/           # Cyberpunk color tokens & Compose shapes
 │   └── build.gradle.kts            # Application Gradle configurations
 │
-├── amplify.yml                     # Amplify build config
-├── deploy-eb.ps1                   # Build + create EB deployment zip
-├── AWS_DEPLOYMENT.md               # Full AWS deployment guide
-├── MANUAL_DEPLOYMENT.md            # Manual deployment steps
-├── EB_ENV_VARIABLES.md             # Environment variables reference
+├── .github/workflows/
+│   └── azure-deploy.yml            # CI/CD — Docker build, push to ACR, deploy to App Service
+├── Dockerfile                      # Backend container image
 └── README.md
 ```
 
@@ -274,34 +270,22 @@ NEXT_PUBLIC_API_URL=http://localhost:8080/api/v1
 
 ## ☁️ Deployment
 
-### AWS Services
+### Azure Services
 
 | Service | Purpose |
 |---------|---------|
-| **AWS Amplify** | Hosts Next.js frontend, builds on GitHub push, serves over HTTPS |
-| **Elastic Beanstalk** | Runs Spring Boot backend on EC2 with load balancer |
-| **Amazon RDS** | Managed PostgreSQL for production data |
+| **Azure App Service** | Runs the Dockerized Spring Boot backend over HTTPS |
+| **Azure Container Registry** | Stores the backend Docker images (`moonlightstaysacr`) |
+| **GitHub Actions** | Builds and deploys automatically on every push |
 
-### Deploy Backend (Elastic Beanstalk)
+### Deploy Backend (Azure App Service)
 
-```powershell
-# From project root
-.\deploy-eb.ps1
-```
-
-Then upload `airBnbApp/target/airbnb-eb-deploy.zip` via EB Console → **Upload and deploy**.
-
-### Deploy Frontend (Amplify)
-
-Push to GitHub — Amplify auto-builds from `amplify.yml`.
+Push to `main` — the [azure-deploy.yml](./.github/workflows/azure-deploy.yml) workflow builds the Docker image from the root `Dockerfile`, pushes it to Azure Container Registry, and deploys it to the `moonlight-stays-backend` App Service.
 
 ### Region & URLs
 
-- **Region**: `ap-south-1` (Mumbai)
-- **Frontend**: https://main.d30tl6vi1qydms.amplifyapp.com
-- **Backend**: http://v2-0.eba-hk6i6byc.ap-south-1.elasticbeanstalk.com
-
-📖 **Detailed guides**: [AWS_DEPLOYMENT.md](./AWS_DEPLOYMENT.md) · [MANUAL_DEPLOYMENT.md](./MANUAL_DEPLOYMENT.md) · [EB_ENV_VARIABLES.md](./EB_ENV_VARIABLES.md)
+- **Region**: Central India
+- **Backend**: https://moonlight-stays-backend-d6hga6dtg6c3cya2.centralindia-01.azurewebsites.net
 
 ---
 
@@ -314,7 +298,7 @@ Push to GitHub — Amplify auto-builds from `amplify.yml`.
 | **Bookings** | `POST /bookings/init`, `POST /bookings/{id}/payments` |
 | **Admin** | `POST /admin/hotels`, `GET /admin/hotels`, `PATCH /admin/hotels/{id}/surge` |
 
-**Full API docs**: [Swagger UI](http://v2-0.eba-hk6i6byc.ap-south-1.elasticbeanstalk.com/api/v1/swagger-ui.html)
+**Full API docs**: [Swagger UI](https://moonlight-stays-backend-d6hga6dtg6c3cya2.centralindia-01.azurewebsites.net/api/v1/swagger-ui.html)
 
 ---
 
@@ -322,11 +306,6 @@ Push to GitHub — Amplify auto-builds from `amplify.yml`.
 
 | Document | Description |
 |----------|-------------|
-| [AWS_DEPLOYMENT.md](./AWS_DEPLOYMENT.md) | Step-by-step AWS deployment (RDS, EB, Amplify) |
-| [MANUAL_DEPLOYMENT.md](./MANUAL_DEPLOYMENT.md) | Manual deployment with deploy-eb.ps1 |
-| [EB_ENV_VARIABLES.md](./EB_ENV_VARIABLES.md) | Elastic Beanstalk environment variables |
-| [RDS_SECURITY_GROUP_SETUP.md](./RDS_SECURITY_GROUP_SETUP.md) | RDS security group for EB access |
-| [ZIP_DEPLOY_CHECKLIST.md](./ZIP_DEPLOY_CHECKLIST.md) | Zip structure checklist |
 | [DEV_SETUP.md](./DEV_SETUP.md) | Local development setup |
 | [ROLE_BASED_FUNCTIONALITY.md](./ROLE_BASED_FUNCTIONALITY.md) | API endpoints by user role |
 | [API_INTEGRATION_PLAN.md](./API_INTEGRATION_PLAN.md) | API integration details |
@@ -336,7 +315,7 @@ Push to GitHub — Amplify auto-builds from `amplify.yml`.
 ## 🌟 Highlights for Recruiters
 
 - **Full-stack ownership** — UI, API, database, deployment
-- **Production deployment** — Live on AWS (Amplify, EB, RDS, S3, EC2, Load Balancer)
+- **Production deployment** — Live on Azure (App Service, Container Registry, GitHub Actions CI/CD)
 - **Modern stack** — Spring Boot 3, Next.js 14, TypeScript
 - **Payments** — Stripe Checkout with webhook integration
 - **Design patterns** — Strategy pattern for dynamic pricing

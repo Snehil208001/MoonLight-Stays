@@ -9,10 +9,7 @@ const nextConfig = {
   images: {
     remotePatterns: [
       { protocol: 'http', hostname: 'localhost', pathname: '/**' },
-      { protocol: 'http', hostname: 'moonlight-stays.ap-south-1.elasticbeanstalk.com', pathname: '/**' },
-      { protocol: 'https', hostname: 'moonlight-stays.ap-south-1.elasticbeanstalk.com', pathname: '/**' },
-      { protocol: 'http', hostname: '*.railway.app', pathname: '/**' },
-      { protocol: 'https', hostname: '*.railway.app', pathname: '/**' },
+      { protocol: 'https', hostname: '*.azurewebsites.net', pathname: '/**' },
     ],
   },
   async rewrites() {

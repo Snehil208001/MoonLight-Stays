@@ -25,4 +25,6 @@ interface HotelRepository {
         page: Int,
         size: Int
     ): Flow<NetworkResult<com.snehil.moon_stays_androidapp.data.remote.dto.PageDto<com.snehil.moon_stays_androidapp.data.remote.dto.ReviewDto>>>
+
+    fun getHotelAverageRating(hotelId: Long): Flow<NetworkResult<Double>>
 }

@@ -45,10 +45,8 @@ fun HotelDetailScreen(
 ) {
     val hotel = remember(hotelId) { dashboardViewModel.getHotelById(hotelId) }
     val rooms by detailViewModel.rooms.collectAsState()
-
-    LaunchedEffect(hotelId) {
-        detailViewModel.fetchHotelDetails(hotelId)
-    }
+    val roomPrices by detailViewModel.roomPrices.collectAsState()
+    val averageRating by detailViewModel.averageRating.collectAsState()
 
     val checkInDate by dashboardViewModel.checkInDate.collectAsState()
     val checkOutDate by dashboardViewModel.checkOutDate.collectAsState()
@@ -58,17 +56,32 @@ fun HotelDetailScreen(
     val isBookingLoading by detailViewModel.isBookingLoading.collectAsState()
     val isBookingSuccess by detailViewModel.isBookingSuccess.collectAsState()
 
+    val nights = remember(checkInDate, checkOutDate) {
+        try {
+            val checkIn = java.time.LocalDate.parse(checkInDate)
+            val checkOut = java.time.LocalDate.parse(checkOutDate)
+            java.time.temporal.ChronoUnit.DAYS.between(checkIn, checkOut).coerceAtLeast(1)
+        } catch (e: Exception) {
+            2L
+        }
+    }
+
+    LaunchedEffect(hotelId, checkInDate, checkOutDate, roomsCount) {
+        detailViewModel.fetchHotelDetails(hotelId)
+        detailViewModel.fetchRoomPrices(hotelId, checkInDate, checkOutDate, roomsCount)
+    }
+
     var selectedRoom by remember { mutableStateOf<RoomDto?>(null) }
 
     // Navigation trigger on success
     LaunchedEffect(isBookingSuccess) {
         if (isBookingSuccess) {
             selectedRoom?.let { room ->
-                // Calculate discounted price
-                val baseTotal = room.basePrice * roomsCount * 2.0 // Assuming a 2-night stay for mock calculations
+                val priceInfo = roomPrices.find { it.roomId == room.id }
+                val baselineTotal = priceInfo?.totalForStay ?: (room.basePrice * roomsCount * nights.toDouble())
                 val discountedTotal = promoDiscount?.let { discount ->
-                    baseTotal * (1.0 - discount / 100.0)
-                } ?: baseTotal
+                    baselineTotal * (1.0 - discount / 100.0)
+                } ?: baselineTotal
 
                 dashboardViewModel.addBooking(
                     BookingDto(
@@ -128,8 +141,33 @@ fun HotelDetailScreen(
                 // Hotel Details Title & Amenities
                 item {
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text(hotel.name, color = MoonPrimary, fontSize = 24.sp, fontWeight = FontWeight.Bold)
-                        Text(hotel.location, color = MoonOnSurfaceVariant, fontSize = 13.sp)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(hotel.name, color = MoonPrimary, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                                Text(hotel.location, color = MoonOnSurfaceVariant, fontSize = 13.sp)
+                            }
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Star,
+                                    contentDescription = "Rating",
+                                    tint = Color(0xFFFFD700),
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Text(
+                                    text = if (averageRating > 0.0) String.format("%.1f", averageRating) else "New",
+                                    color = MoonPrimary,
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
 
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
@@ -201,10 +239,12 @@ fun HotelDetailScreen(
                                 }
                             }
 
-                            // Dynamic room price reflecting active promo discount
+                            // Dynamic room price reflecting active promo discount and dynamic pricing
+                            val priceInfo = roomPrices.find { it.roomId == room.id }
+                            val baselinePrice = priceInfo?.pricePerNight ?: room.basePrice
                             val roomPrice = promoDiscount?.let { discount ->
-                                room.basePrice * (1.0 - discount / 100.0)
-                            } ?: room.basePrice
+                                baselinePrice * (1.0 - discount / 100.0)
+                            } ?: baselinePrice
 
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -219,7 +259,7 @@ fun HotelDetailScreen(
                                 Column(horizontalAlignment = Alignment.End) {
                                     if (promoDiscount != null) {
                                         Text(
-                                            text = "₮${room.basePrice.toInt()}",
+                                            text = "₮${baselinePrice.toInt()}",
                                             color = MoonOnSurfaceVariant,
                                             fontSize = 11.sp,
                                             style = MaterialTheme.typography.bodySmall.copy(
@@ -250,13 +290,14 @@ fun HotelDetailScreen(
                                 verticalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
                                 Text("Reservation details:", color = MoonPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                                Text("Dates: $checkInDate to $checkOutDate (2 nights)", color = MoonOnSurfaceVariant, fontSize = 12.sp)
+                                Text("Dates: $checkInDate to $checkOutDate ($nights nights)", color = MoonOnSurfaceVariant, fontSize = 12.sp)
                                 Text("Rooms Count: $roomsCount", color = MoonOnSurfaceVariant, fontSize = 12.sp)
 
-                                val calculatedRoomPrice = promoDiscount?.let { discount ->
-                                    room.basePrice * (1.0 - discount / 100.0)
-                                } ?: room.basePrice
-                                val totalToPay = calculatedRoomPrice * roomsCount * 2.0
+                                val resPriceInfo = roomPrices.find { it.roomId == room.id }
+                                val baselineTotal = resPriceInfo?.totalForStay ?: (room.basePrice * roomsCount * nights.toDouble())
+                                val totalToPay = promoDiscount?.let { discount ->
+                                    baselineTotal * (1.0 - discount / 100.0)
+                                } ?: baselineTotal
 
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),

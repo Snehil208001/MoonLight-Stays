@@ -3,6 +3,7 @@ package com.snehil.moon_stays_androidapp.mainui.loginscreen.viewmodel
 import com.snehil.moon_stays_androidapp.core.base.BaseViewModel
 import com.snehil.moon_stays_androidapp.core.common.NetworkResult
 import com.snehil.moon_stays_androidapp.data.remote.dto.LoginDto
+import com.snehil.moon_stays_androidapp.domain.repository.AuthRepository
 import com.snehil.moon_stays_androidapp.domain.usecase.LoginUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -12,7 +13,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class LoginScreenViewModel @Inject constructor(
-    private val loginUseCase: LoginUseCase
+    private val loginUseCase: LoginUseCase,
+    private val authRepository: AuthRepository
 ) : BaseViewModel() {
 
     private val _email = MutableStateFlow("")
@@ -65,5 +67,8 @@ class LoginScreenViewModel @Inject constructor(
     fun resetSuccessState() {
         _loginSuccess.value = false
     }
+
+    // Role saved by LoginUseCase from the backend profile (HOTEL_MANAGER role).
+    fun isManagerAccount(): Boolean = authRepository.isManager()
 }
 

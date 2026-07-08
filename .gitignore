@@ -7,4 +7,6 @@ local.properties
 .vscode/
 *.png
 stitch_downloads/
-
+.env
+*.log
+.kotlin/

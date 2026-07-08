@@ -10,11 +10,9 @@ import javax.inject.Inject
 class SignUpUseCase @Inject constructor(
     private val authRepository: AuthRepository
 ) {
-    operator fun invoke(request: SignUpRequestDto, isManager: Boolean): Flow<NetworkResult<UserDto>> {
-        return if (isManager) {
-            authRepository.adminSignup(request)
-        } else {
-            authRepository.signup(request)
-        }
+    // Guest accounts only — Hotel Manager accounts are assigned by administration,
+    // mirroring the web app (AuthModal blocks manager signup).
+    operator fun invoke(request: SignUpRequestDto): Flow<NetworkResult<UserDto>> {
+        return authRepository.signup(request)
     }
 }

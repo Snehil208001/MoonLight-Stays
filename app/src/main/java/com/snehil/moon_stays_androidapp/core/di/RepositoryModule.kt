@@ -1,11 +1,7 @@
 package com.snehil.moon_stays_androidapp.core.di
 
-import com.snehil.moon_stays_androidapp.data.repository.AuthRepositoryImpl
-import com.snehil.moon_stays_androidapp.data.repository.BookingRepositoryImpl
-import com.snehil.moon_stays_androidapp.data.repository.HotelRepositoryImpl
-import com.snehil.moon_stays_androidapp.domain.repository.AuthRepository
-import com.snehil.moon_stays_androidapp.domain.repository.BookingRepository
-import com.snehil.moon_stays_androidapp.domain.repository.HotelRepository
+import com.snehil.moon_stays_androidapp.data.repository.*
+import com.snehil.moon_stays_androidapp.domain.repository.*
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -33,4 +29,23 @@ abstract class RepositoryModule {
     abstract fun bindBookingRepository(
         bookingRepositoryImpl: BookingRepositoryImpl
     ): BookingRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindAdminRepository(
+        adminRepositoryImpl: AdminRepositoryImpl
+    ): AdminRepository
+
+    // Decoupled Multi-Backend Repositories
+    @Binds
+    @Singleton
+    abstract fun bindLegacyRepository(
+        legacyRepositoryImpl: LegacyRepositoryImpl
+    ): LegacyRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindModernRepository(
+        modernRepositoryImpl: ModernRepositoryImpl
+    ): ModernRepository
 }

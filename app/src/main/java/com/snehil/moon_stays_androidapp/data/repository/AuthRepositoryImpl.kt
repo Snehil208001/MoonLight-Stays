@@ -10,6 +10,7 @@ import com.snehil.moon_stays_androidapp.data.remote.dto.SignUpRequestDto
 import com.snehil.moon_stays_androidapp.data.remote.dto.UserDto
 import com.snehil.moon_stays_androidapp.domain.repository.AuthRepository
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.onEach
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -33,6 +34,15 @@ class AuthRepositoryImpl @Inject constructor(
 
     override fun logout(): Flow<NetworkResult<Unit>> {
         return safeApiCall { authApiService.logout() }
+    }
+
+    override suspend fun fetchProfile(): UserDto? {
+        return try {
+            val response = authApiService.getProfile()
+            if (response.isSuccessful) response.body() else null
+        } catch (e: Exception) {
+            null
+        }
     }
 
     override fun saveToken(token: String) {
@@ -67,7 +77,40 @@ class AuthRepositoryImpl @Inject constructor(
         return tokenManager.isManager()
     }
 
+    override fun markOnboardingDone() {
+        tokenManager.markOnboardingDone()
+    }
+
+    override fun isOnboardingDone(): Boolean {
+        return tokenManager.isOnboardingDone()
+    }
+
     override fun clearSession() {
         tokenManager.clear()
+    }
+
+    override fun updateProfile(name: String): Flow<NetworkResult<UserDto>> {
+        android.util.Log.d("AuthRepository", "updateProfile - name: $name")
+        return safeApiCall { authApiService.updateProfile(com.snehil.moon_stays_androidapp.data.remote.dto.ProfileUpdateDto(name)) }
+            .onEach { result ->
+                if (result is NetworkResult.Success) {
+                    result.data.name?.let { saveUserName(it) }
+                }
+            }
+    }
+
+    override fun getFavoriteHotels(): Flow<NetworkResult<List<com.snehil.moon_stays_androidapp.data.remote.dto.HotelDto>>> {
+        android.util.Log.d("AuthRepository", "getFavoriteHotels - Fetching wishlisted hotels")
+        return safeApiCall { authApiService.getFavoriteHotels() }
+    }
+
+    override fun addHotelToFavorites(hotelId: Long): Flow<NetworkResult<Unit>> {
+        android.util.Log.d("AuthRepository", "addHotelToFavorites - hotelId: $hotelId")
+        return safeApiCall { authApiService.addHotelToFavorites(hotelId) }
+    }
+
+    override fun removeHotelFromFavorites(hotelId: Long): Flow<NetworkResult<Unit>> {
+        android.util.Log.d("AuthRepository", "removeHotelFromFavorites - hotelId: $hotelId")
+        return safeApiCall { authApiService.removeHotelFromFavorites(hotelId) }
     }
 }

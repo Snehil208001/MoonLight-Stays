@@ -48,4 +48,9 @@ class HotelRepositoryImpl @Inject constructor(
     ): Flow<NetworkResult<com.snehil.moon_stays_androidapp.data.remote.dto.PageDto<com.snehil.moon_stays_androidapp.data.remote.dto.ReviewDto>>> {
         return safeApiCall { hotelApiService.getHotelReviews(hotelId, page, size) }
     }
+
+    override fun getHotelAverageRating(hotelId: Long): Flow<NetworkResult<Double>> {
+        android.util.Log.d("HotelRepository", "getHotelAverageRating - hotelId: $hotelId")
+        return safeApiCall { hotelApiService.getHotelAverageRating(hotelId) }
+    }
 }

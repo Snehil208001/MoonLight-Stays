@@ -1,1 +1,0 @@
-web: java -Xms256m -Xmx384m -XX:+UseG1GC -jar application.jar

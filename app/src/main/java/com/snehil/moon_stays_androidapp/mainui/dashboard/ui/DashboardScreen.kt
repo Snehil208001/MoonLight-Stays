@@ -45,6 +45,16 @@ fun DashboardScreen(
 ) {
     var activeTab by remember { mutableStateOf("Explore") }
 
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val errorMessage by viewModel.errorMessage.collectAsState()
+
+    LaunchedEffect(errorMessage) {
+        errorMessage?.let {
+            android.widget.Toast.makeText(context, it, android.widget.Toast.LENGTH_LONG).show()
+            viewModel.clearError()
+        }
+    }
+
     Scaffold(
         topBar = {
             DashboardTopBar(activeTab = activeTab)
@@ -588,6 +598,12 @@ fun ProfileTabContent(
     viewModel: DashboardViewModel,
     onLogout: () -> Unit
 ) {
+    val userName by viewModel.userName.collectAsState()
+    val userEmail by viewModel.userEmail.collectAsState()
+
+    var showEditDialog by remember { mutableStateOf(false) }
+    var nameInput by remember { mutableStateOf("") }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -609,9 +625,11 @@ fun ProfileTabContent(
         }
 
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("Voyager Snehi", color = MoonPrimary, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-            Text("snehi@celestial.com", color = MoonOnSurfaceVariant, fontSize = 14.sp)
+            Text(userName, color = MoonPrimary, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+            Text(userEmail, color = MoonOnSurfaceVariant, fontSize = 14.sp)
         }
+
+        val isManager = viewModel.isHotelManager
 
         Box(
             modifier = Modifier
@@ -619,29 +637,90 @@ fun ProfileTabContent(
                 .border(1.dp, Color(0x1AFFFFFF), RoundedCornerShape(12.dp))
                 .padding(vertical = 4.dp, horizontal = 12.dp)
         ) {
-            Text("ROLE: GUEST", color = MoonPrimaryFixedDim, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+            Text(
+                if (isManager) "ROLE: HOTEL MANAGER" else "ROLE: GUEST",
+                color = MoonPrimaryFixedDim,
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        Button(
+            onClick = {
+                nameInput = userName
+                showEditDialog = true
+            },
+            modifier = Modifier.fillMaxWidth().height(48.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color(0x1AFFFFFF),
+                contentColor = MoonPrimary
+            ),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Text("Edit Profile Nickname")
+        }
+
+        if (showEditDialog) {
+            AlertDialog(
+                onDismissRequest = { showEditDialog = false },
+                title = { Text("Edit Nickname", color = MoonPrimary) },
+                text = {
+                    OutlinedTextField(
+                        value = nameInput,
+                        onValueChange = { nameInput = it },
+                        label = { Text("Nickname") },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = MoonPrimary,
+                            unfocusedTextColor = MoonPrimary,
+                            focusedBorderColor = MoonPrimaryFixedDim,
+                            unfocusedBorderColor = Color(0x33FFFFFF)
+                        ),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            if (nameInput.isNotBlank()) {
+                                viewModel.updateProfileName(nameInput)
+                                showEditDialog = false
+                            }
+                        }
+                    ) {
+                        Text("Save")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showEditDialog = false }) {
+                        Text("Cancel")
+                    }
+                }
+            )
         }
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Switch to Manager Mode Button
-        Button(
-            onClick = { viewModel.setManagerMode(true) },
-            modifier = Modifier.fillMaxWidth().height(48.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MoonPrimaryFixedDim.copy(0.15f),
-                contentColor = MoonPrimaryFixedDim
-            ),
-            shape = RoundedCornerShape(12.dp),
-            border = androidx.compose.foundation.BorderStroke(1.dp, MoonPrimaryFixedDim)
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center
+        // Manager mode is only offered to accounts the backend marked as HOTEL_MANAGER
+        if (isManager) {
+            Button(
+                onClick = { viewModel.setManagerMode(true) },
+                modifier = Modifier.fillMaxWidth().height(48.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MoonPrimaryFixedDim.copy(0.15f),
+                    contentColor = MoonPrimaryFixedDim
+                ),
+                shape = RoundedCornerShape(12.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, MoonPrimaryFixedDim)
             ) {
-                Icon(Icons.Default.SwitchAccount, null, tint = MoonPrimaryFixedDim)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Switch to Manager Mode", color = MoonPrimaryFixedDim, fontWeight = FontWeight.Bold)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Icon(Icons.Default.SwitchAccount, null, tint = MoonPrimaryFixedDim)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Switch to Manager Mode", color = MoonPrimaryFixedDim, fontWeight = FontWeight.Bold)
+                }
             }
         }
 

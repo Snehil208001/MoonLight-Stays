@@ -18,7 +18,9 @@ data class RoomDto(
     val types: String,
     val basePrice: Double,
     val capacity: Int,
-    val amenities: List<String>
+    val amenities: List<String>,
+    val totalCount: Int = 1,
+    val photos: List<String> = emptyList()
 )
 
 data class ReviewDto(
@@ -41,11 +43,13 @@ data class BookingRequest(
 // Helper mapping extensions
 fun com.snehil.moon_stays_androidapp.data.remote.dto.RoomDto.toDomain(): RoomDto {
     return RoomDto(
-        id = this.id.toInt(),
-        types = this.types,
-        basePrice = this.basePrice.toDouble(),
+        id = this.id?.toInt() ?: 0,
+        types = this.types ?: "Unknown Room Type",
+        basePrice = this.basePrice?.toDouble() ?: 0.0,
         capacity = this.capacity ?: 1,
-        amenities = this.amenities ?: emptyList()
+        amenities = this.amenities ?: emptyList(),
+        totalCount = this.totalCount ?: 1,
+        photos = this.photos ?: emptyList()
     )
 }
 
@@ -59,12 +63,19 @@ fun com.snehil.moon_stays_androidapp.data.remote.dto.ReviewDto.toDomain(): Revie
     )
 }
 
+data class RoomPrice(
+    val roomId: Int,
+    val pricePerNight: Double,
+    val totalForStay: Double
+)
+
 @HiltViewModel
 class HotelDetailViewModel @Inject constructor(
     private val getHotelInfoUseCase: GetHotelInfoUseCase,
     private val bookRoomUseCase: BookRoomUseCase,
     private val addReviewUseCase: AddReviewUseCase,
-    private val getReviewsUseCase: GetReviewsUseCase
+    private val getReviewsUseCase: GetReviewsUseCase,
+    private val hotelRepository: com.snehil.moon_stays_androidapp.domain.repository.HotelRepository
 ) : BaseViewModel() {
 
     private val _isBookingLoading = MutableStateFlow(false)
@@ -76,12 +87,17 @@ class HotelDetailViewModel @Inject constructor(
     private val _rooms = MutableStateFlow<List<RoomDto>>(emptyList())
     val rooms: StateFlow<List<RoomDto>> = _rooms.asStateFlow()
 
+    private val _roomPrices = MutableStateFlow<List<RoomPrice>>(emptyList())
+    val roomPrices: StateFlow<List<RoomPrice>> = _roomPrices.asStateFlow()
+
+    private val _averageRating = MutableStateFlow(0.0)
+    val averageRating: StateFlow<Double> = _averageRating.asStateFlow()
+
     // Reviews list state mapping hotelId to reviews
     private val _reviews = MutableStateFlow<Map<Int, List<ReviewDto>>>(emptyMap())
     val reviews: StateFlow<Map<Int, List<ReviewDto>>> = _reviews.asStateFlow()
 
     fun getRoomsForHotel(hotelId: Int): List<RoomDto> {
-        // Return cached list for UI compat, but we load dynamically
         return _rooms.value
     }
 
@@ -90,6 +106,7 @@ class HotelDetailViewModel @Inject constructor(
     }
 
     fun fetchHotelDetails(hotelId: Int) {
+        android.util.Log.d("HotelDetailViewModel", "fetchHotelDetails - hotelId: $hotelId")
         launchSafe {
             getHotelInfoUseCase(hotelId.toLong()).collect { result ->
                 when (result) {
@@ -108,6 +125,51 @@ class HotelDetailViewModel @Inject constructor(
             }
         }
         fetchReviews(hotelId)
+        fetchAverageRating(hotelId)
+    }
+
+    fun fetchRoomPrices(hotelId: Int, checkIn: String, checkOut: String, roomsCount: Int) {
+        android.util.Log.d("HotelDetailViewModel", "fetchRoomPrices - hotelId: $hotelId, checkIn: $checkIn, checkOut: $checkOut, roomsCount: $roomsCount")
+        launchSafe {
+            hotelRepository.getRoomPrices(hotelId.toLong(), checkIn, checkOut, roomsCount).collect { result ->
+                when (result) {
+                    is NetworkResult.Loading -> {}
+                    is NetworkResult.Error -> {
+                        android.util.Log.e("HotelDetailViewModel", "fetchRoomPrices - Failed: ${result.message}")
+                        _errorMessage.value = result.message
+                    }
+                    is NetworkResult.Success -> {
+                        val prices = result.data.map { dto ->
+                            RoomPrice(
+                                roomId = dto.roomId.toInt(),
+                                pricePerNight = dto.pricePerNight.toDouble(),
+                                totalForStay = dto.totalForStay.toDouble()
+                            )
+                        }
+                        android.util.Log.d("HotelDetailViewModel", "fetchRoomPrices - Success! Loaded ${prices.size} room prices")
+                        _roomPrices.value = prices
+                    }
+                }
+            }
+        }
+    }
+
+    fun fetchAverageRating(hotelId: Int) {
+        android.util.Log.d("HotelDetailViewModel", "fetchAverageRating - hotelId: $hotelId")
+        launchSafe {
+            hotelRepository.getHotelAverageRating(hotelId.toLong()).collect { result ->
+                when (result) {
+                    is NetworkResult.Success -> {
+                        android.util.Log.d("HotelDetailViewModel", "fetchAverageRating - Success! Average: ${result.data}")
+                        _averageRating.value = result.data
+                    }
+                    is NetworkResult.Error -> {
+                        android.util.Log.e("HotelDetailViewModel", "fetchAverageRating - Error: ${result.message}")
+                    }
+                    is NetworkResult.Loading -> {}
+                }
+            }
+        }
     }
 
     fun fetchReviews(hotelId: Int) {

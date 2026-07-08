@@ -1,9 +1,8 @@
 package com.snehil.moon_stays_androidapp.core.di
 
-import com.snehil.moon_stays_androidapp.data.local.TokenManager
-import com.snehil.moon_stays_androidapp.data.remote.AuthApiService
-import com.snehil.moon_stays_androidapp.data.remote.BookingApiService
-import com.snehil.moon_stays_androidapp.data.remote.HotelApiService
+import com.snehil.moon_stays_androidapp.core.common.AuthInterceptor
+import com.snehil.moon_stays_androidapp.data.remote.*
+import com.google.gson.Gson
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -14,30 +13,31 @@ import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
+import javax.inject.Qualifier
 import javax.inject.Singleton
+
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class LegacyRetrofit
+
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class ModernRetrofit
 
 @Module
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
 
-    private const val BASE_URL = "https://airbnbbackend-production-a19d.up.railway.app/api/v1/"
+    // Monolith Core Client Base URL (uses 10.0.2.2 inside Android Emulators to reach localhost:8080)
+    private const val LEGACY_BASE_URL = "http://10.0.2.2:8080/api/v1/"
+    
+    // Modern Restructured Core Client Base URL
+    private const val MODERN_BASE_URL = "https://moonlight-stays-backend-d6hga6dtg6c3cya2.centralindia-01.azurewebsites.net/api/v1/"
 
     @Provides
     @Singleton
-    fun provideAuthInterceptor(tokenManager: TokenManager): Interceptor {
-        return Interceptor { chain ->
-            val originalRequest = chain.request()
-            val token = tokenManager.getToken()
-            
-            val newRequest = if (!token.isNullOrEmpty()) {
-                originalRequest.newBuilder()
-                    .header("Authorization", "Bearer $token")
-                    .build()
-            } else {
-                originalRequest
-            }
-            chain.proceed(newRequest)
-        }
+    fun provideAuthInterceptor(authInterceptor: AuthInterceptor): Interceptor {
+        return authInterceptor
     }
 
     @Provides
@@ -65,29 +65,66 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideRetrofit(okHttpClient: OkHttpClient): Retrofit {
+    @LegacyRetrofit
+    fun provideLegacyRetrofit(okHttpClient: OkHttpClient): Retrofit {
+        val gson = Gson()
         return Retrofit.Builder()
-            .baseUrl(BASE_URL)
+            .baseUrl(LEGACY_BASE_URL)
             .client(okHttpClient)
-            .addConverterFactory(GsonConverterFactory.create())
+            // Unwraps the legacy backend's {"timeStamp": ..., "data": <payload>} envelope
+            .addConverterFactory(ApiEnvelopeConverterFactory(gson))
+            .addConverterFactory(GsonConverterFactory.create(gson))
             .build()
     }
 
     @Provides
     @Singleton
-    fun provideAuthApiService(retrofit: Retrofit): AuthApiService {
+    @ModernRetrofit
+    fun provideModernRetrofit(okHttpClient: OkHttpClient): Retrofit {
+        val gson = Gson()
+        return Retrofit.Builder()
+            .baseUrl(MODERN_BASE_URL)
+            .client(okHttpClient)
+            // The modern restructured backend does NOT use the response envelope; responses are raw JSON.
+            .addConverterFactory(GsonConverterFactory.create(gson))
+            .build()
+    }
+
+    // Legacy Client Api Services (mapping existing implementations)
+    @Provides
+    @Singleton
+    fun provideAuthApiService(@LegacyRetrofit retrofit: Retrofit): AuthApiService {
         return retrofit.create(AuthApiService::class.java)
     }
 
     @Provides
     @Singleton
-    fun provideHotelApiService(retrofit: Retrofit): HotelApiService {
+    fun provideHotelApiService(@LegacyRetrofit retrofit: Retrofit): HotelApiService {
         return retrofit.create(HotelApiService::class.java)
     }
 
     @Provides
     @Singleton
-    fun provideBookingApiService(retrofit: Retrofit): BookingApiService {
+    fun provideBookingApiService(@LegacyRetrofit retrofit: Retrofit): BookingApiService {
         return retrofit.create(BookingApiService::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideAdminApiService(@LegacyRetrofit retrofit: Retrofit): AdminApiService {
+        return retrofit.create(AdminApiService::class.java)
+    }
+
+    // Unified Legacy and Modern API interfaces definitions
+    @Provides
+    @Singleton
+    fun provideLegacyApiService(@LegacyRetrofit retrofit: Retrofit): LegacyApiService {
+        return retrofit.create(LegacyApiService::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideModernApiService(@ModernRetrofit retrofit: Retrofit): ModernApiService {
+        return retrofit.create(ModernApiService::class.java)
     }
 }

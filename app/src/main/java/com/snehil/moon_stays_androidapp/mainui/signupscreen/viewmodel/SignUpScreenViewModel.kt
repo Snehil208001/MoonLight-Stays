@@ -33,9 +33,6 @@ class SignUpScreenViewModel @Inject constructor(
     private val _confirmPasswordVisible = MutableStateFlow(false)
     val confirmPasswordVisible: StateFlow<Boolean> = _confirmPasswordVisible.asStateFlow()
 
-    private val _isHotelManager = MutableStateFlow(false)
-    val isHotelManager: StateFlow<Boolean> = _isHotelManager.asStateFlow()
-
     private val _signUpSuccess = MutableStateFlow(false)
     val signUpSuccess: StateFlow<Boolean> = _signUpSuccess.asStateFlow()
 
@@ -63,10 +60,6 @@ class SignUpScreenViewModel @Inject constructor(
         _confirmPasswordVisible.value = !_confirmPasswordVisible.value
     }
 
-    fun toggleHotelManager(newValue: Boolean) {
-        _isHotelManager.value = newValue
-    }
-
     fun signUp() {
         if (_fullName.value.isBlank() ||
             _email.value.isBlank() ||
@@ -81,7 +74,7 @@ class SignUpScreenViewModel @Inject constructor(
                 password = _password.value,
                 name = _fullName.value
             )
-            signUpUseCase(request, _isHotelManager.value).collect { result ->
+            signUpUseCase(request).collect { result ->
                 when (result) {
                     is NetworkResult.Loading -> {
                         _isLoading.value = true

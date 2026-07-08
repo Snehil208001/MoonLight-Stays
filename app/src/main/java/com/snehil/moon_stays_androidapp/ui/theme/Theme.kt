@@ -1,40 +1,36 @@
 package com.snehil.moon_stays_androidapp.ui.theme
 
-import android.app.Activity
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 
-private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
-)
-
+// Moonlight Stays "Midnight Glassmorphism" scheme — design-system/DESIGN_SYSTEM.md
+// Mirrors the web app: midnight backgrounds, cyan primary accent, coral secondary.
 private val MoonDarkColorScheme = darkColorScheme(
-    primary = MoonPrimary,
-    secondary = MoonSecondary,
-    tertiary = MoonPrimaryFixedDim,
-    background = MoonSurface,
-    surface = MoonSurface,
-    onPrimary = MoonSurface,
-    onSecondary = MoonSurfaceContainer,
-    onBackground = MoonOnSurface,
-    onSurface = MoonOnSurface,
-    surfaceVariant = MoonSurfaceContainerHighest,
-    onSurfaceVariant = MoonOnSurfaceVariant
-)
-
-private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
+    primary = AccentCyan,
+    onPrimary = OnAccent,
+    secondary = AccentCoral,
+    onSecondary = OnAccent,
+    tertiary = TextPrimary,
+    onTertiary = Midnight950,
+    background = Midnight950,
+    onBackground = TextPrimary,
+    surface = Midnight900,
+    onSurface = TextPrimary,
+    surfaceVariant = Midnight800,
+    onSurfaceVariant = TextSecondary,
+    surfaceContainer = Midnight900,
+    surfaceContainerHighest = Midnight700,
+    outline = GlassBorderStrong,
+    outlineVariant = GlassBorder,
+    error = ErrorRed,
+    onError = Midnight950,
+    scrim = Scrim
 )
 
 @Composable
@@ -50,13 +46,15 @@ fun MoonStaysAndroidAppTheme(
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
 
-        darkTheme -> MoonDarkColorScheme
-        else -> MoonDarkColorScheme // Force MoonDarkColorScheme as default for this design
+        // Dark-only for now, matching the web app (html.dark forced).
+        // Light tokens exist in design-system/tokens.json for future use.
+        else -> MoonDarkColorScheme
     }
 
     MaterialTheme(
         colorScheme = colorScheme,
         typography = Typography,
+        shapes = MoonShapes,
         content = content
     )
 }

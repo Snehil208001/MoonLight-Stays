@@ -32,10 +32,30 @@ fun NavGraph(
     modifier: Modifier = Modifier
 ) {
     when (currentScreen) {
+        // Flow mirrors the web app: Splash → Onboarding (first launch only) →
+        // Login → Dashboard. A saved session skips straight to the Dashboard.
         is Screen.Splash -> {
             SplashScreen(
                 viewModel = splashViewModel,
-                onNavigateNext = { onNavigate(Screen.Login()) },
+                onNavigateNext = {
+                    when {
+                        splashViewModel.isLoggedIn() -> {
+                            dashboardViewModel.setManagerMode(splashViewModel.isManager())
+                            onNavigate(Screen.Dashboard())
+                        }
+                        !splashViewModel.isOnboardingDone() -> onNavigate(Screen.Onboarding())
+                        else -> onNavigate(Screen.Login())
+                    }
+                },
+                modifier = modifier.padding(innerPadding)
+            )
+        }
+        is Screen.Onboarding -> {
+            OnboardingScreen(
+                onComplete = {
+                    splashViewModel.markOnboardingDone()
+                    onNavigate(Screen.Login())
+                },
                 modifier = modifier.padding(innerPadding)
             )
         }
@@ -44,9 +64,9 @@ fun NavGraph(
                 viewModel = loginViewModel,
                 onNavigateToSignUp = { onNavigate(Screen.SignUp()) },
                 onLoginSuccess = {
-                    val isManager = loginViewModel.email.value.contains("manager", ignoreCase = true)
-                    dashboardViewModel.setManagerMode(isManager)
-                    onNavigate(Screen.Onboarding())
+                    // Role comes from the backend profile, saved during login
+                    dashboardViewModel.setManagerMode(loginViewModel.isManagerAccount())
+                    onNavigate(Screen.Dashboard())
                 },
                 modifier = modifier.padding(innerPadding)
             )
@@ -58,25 +78,25 @@ fun NavGraph(
                 modifier = modifier.padding(innerPadding)
             )
         }
-        is Screen.Onboarding -> {
-            OnboardingScreen(
-                onComplete = { onNavigate(Screen.Dashboard()) },
-                modifier = modifier.padding(innerPadding)
-            )
-        }
         is Screen.Dashboard -> {
             val isManagerMode by dashboardViewModel.isManagerMode.collectAsState()
             if (isManagerMode) {
                 ManagerDashboardScreen(
                     viewModel = dashboardViewModel,
-                    onLogout = { onNavigate(Screen.Login()) },
+                    onLogout = {
+                        dashboardViewModel.logout()
+                        onNavigate(Screen.Login())
+                    },
                     modifier = modifier.padding(innerPadding)
                 )
             } else {
                 DashboardScreen(
                     viewModel = dashboardViewModel,
                     onNavigateToHotelDetail = { onNavigate(Screen.HotelDetail(it)) },
-                    onLogout = { onNavigate(Screen.Login()) },
+                    onLogout = {
+                        dashboardViewModel.logout()
+                        onNavigate(Screen.Login())
+                    },
                     modifier = modifier.padding(innerPadding)
                 )
             }

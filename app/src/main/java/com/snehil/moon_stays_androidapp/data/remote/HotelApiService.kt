@@ -38,4 +38,9 @@ interface HotelApiService {
         @Query("page") page: Int,
         @Query("size") size: Int
     ): Response<com.snehil.moon_stays_androidapp.data.remote.dto.PageDto<com.snehil.moon_stays_androidapp.data.remote.dto.ReviewDto>>
+
+    @GET("hotels/{hotelId}/reviews/average")
+    suspend fun getHotelAverageRating(
+        @Path("hotelId") hotelId: Long
+    ): Response<Double>
 }

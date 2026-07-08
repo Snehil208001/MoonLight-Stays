@@ -8,5 +8,3 @@ airBnbApp/target
 airBnbApp/uploads
 *.md
 *.ps1
-amplify.yml
-buildspec.yml

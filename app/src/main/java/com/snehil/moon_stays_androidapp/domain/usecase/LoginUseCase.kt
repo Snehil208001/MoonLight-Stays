@@ -14,17 +14,15 @@ class LoginUseCase @Inject constructor(
     operator fun invoke(loginDto: LoginDto): Flow<NetworkResult<LoginResponseDto>> {
         return authRepository.login(loginDto).map { result ->
             if (result is NetworkResult.Success) {
-                // Save token to SharedPreferences
                 authRepository.saveToken(result.data.accessToken)
                 authRepository.saveUserEmail(loginDto.email)
-                
-                // Simple logic to parse user name from email as fallback
-                val calculatedName = loginDto.email.substringBefore("@").replaceFirstChar { it.uppercase() }
-                authRepository.saveUserName(calculatedName)
-                
-                // Determine manager status by email contains manager
-                val isManager = loginDto.email.contains("manager", ignoreCase = true)
-                authRepository.saveIsManager(isManager)
+
+                // Name and role come from the backend profile, same as the web app —
+                // HOTEL_MANAGER is assigned server-side, never inferred client-side.
+                val profile = authRepository.fetchProfile()
+                val fallbackName = loginDto.email.substringBefore("@").replaceFirstChar { it.uppercase() }
+                authRepository.saveUserName(profile?.name ?: fallbackName)
+                authRepository.saveIsManager(profile?.roles?.contains("HOTEL_MANAGER") == true)
             }
             result
         }

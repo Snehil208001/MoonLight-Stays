@@ -45,8 +45,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -91,7 +89,6 @@ fun SignUpScreen(
     val confirmPassword by viewModel.confirmPassword.collectAsState()
     val passwordVisible by viewModel.passwordVisible.collectAsState()
     val confirmPasswordVisible by viewModel.confirmPasswordVisible.collectAsState()
-    val isHotelManager by viewModel.isHotelManager.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val signUpSuccess by viewModel.signUpSuccess.collectAsState()
 
@@ -457,7 +454,7 @@ fun SignUpScreen(
 
                     Spacer(modifier = Modifier.height(18.dp))
 
-                    // Role Toggle for Hotel Manager
+                    // Guest accounts only — same policy as the web app's AuthModal
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -465,41 +462,18 @@ fun SignUpScreen(
                             .border(1.dp, Color(0x1AFFFFFF), RoundedCornerShape(12.dp))
                             .padding(14.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.CorporateFare,
-                                contentDescription = "Corporate Fare Icon",
-                                tint = MoonPrimaryFixedDim,
-                                modifier = Modifier.size(24.dp)
-                            )
-                            Column {
-                                Text(
-                                    text = "Hotel Manager",
-                                    color = MoonOnSurface,
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                                Text(
-                                    text = "Switch to business account",
-                                    color = MoonOnSurfaceVariant.copy(alpha = 0.6f),
-                                    fontSize = 11.sp
-                                )
-                            }
-                        }
-                        Switch(
-                            checked = isHotelManager,
-                            onCheckedChange = viewModel::toggleHotelManager,
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = Color.White,
-                                checkedTrackColor = MoonPrimaryFixedDim,
-                                uncheckedThumbColor = MoonOnSurfaceVariant,
-                                uncheckedTrackColor = MoonSurfaceContainer
-                            )
+                        Icon(
+                            imageVector = Icons.Default.CorporateFare,
+                            contentDescription = "Hotel Manager Info Icon",
+                            tint = MoonPrimaryFixedDim,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Text(
+                            text = "Hotel Manager accounts cannot be created here. Contact your administrator for access.",
+                            color = MoonOnSurfaceVariant.copy(alpha = 0.8f),
+                            fontSize = 12.sp
                         )
                     }
 
