@@ -4,6 +4,9 @@
 
 ### Airbnb-style Hotel Booking Platform
 
+![Moonlight Stays Banner](./moonlight_stays_banner.png)
+
+
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5-6DB33F?style=for-the-badge&logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
 [![Next.js](https://img.shields.io/badge/Next.js-14-000000?style=for-the-badge&logo=nextdotjs&logoColor=white)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
@@ -143,36 +146,104 @@
 
 ---
 
-## 🏗 Architecture
+## 🏗 Architecture & Cloud Infrastructure
 
-```
-┌─────────────────────┐         HTTPS          ┌──────────────────────┐        HTTPS          ┌─────────────────────────┐
-│   Web / Android     │ ◄────────────────────► │  Next.js Frontend    │ ◄───────────────────► │  Azure App Service      │
-│   Clients           │                         │  /api/v1 → proxy     │                       │  (Spring Boot, Docker)  │
-└─────────────────────┘                         └──────────────────────┘                       └────────────┬────────────┘
-                                                                                                                    │
-                                                                                                                    │ JDBC
-                                                                                                                    ▼
-                                                                                                         ┌─────────────────────────┐
-                                                                                                         │   PostgreSQL             │
-                                                                                                         │   (Production DB)        │
-                                                                                                         └─────────────────────────┘
+### System Design Map
+The Moonlight Stays platform leverages a modern, containerized backend and decoupled web and mobile clients connected through clean REST interfaces.
+
+```mermaid
+flowchart TD
+    %% Colors & Styling
+    classDef client fill:#0A0A1A,stroke:#00FFFF,stroke-width:2px,color:#00FFFF;
+    classDef backend fill:#0A0A1A,stroke:#FF7F50,stroke-width:2px,color:#FF7F50;
+    classDef database fill:#0A0A1A,stroke:#3DDC84,stroke-width:2px,color:#3DDC84;
+    classDef pipeline fill:#0A0A1A,stroke:#A855F7,stroke-width:2px,color:#A855F7;
+
+    subgraph Clients ["📱 Client Layer"]
+        AndroidApp["🤖 Android App<br/>(Jetpack Compose & Kotlin)"]:::client
+        WebFrontend["🌐 Web Frontend<br/>(Next.js & TypeScript)"]:::client
+    end
+
+    subgraph Azure ["☁️ Azure Cloud Infrastructure"]
+        AppService["🐳 Azure App Service<br/>(Dockerized Spring Boot Backend)"]:::backend
+        ACR["📦 Azure Container Registry<br/>(Private Image Storage)"]:::backend
+        Database["💾 Production PostgreSQL<br/>(Azure Database)"]:::database
+    end
+
+    subgraph CI_CD ["🔄 CI/CD Automation"]
+        GitHubActions["🐙 GitHub Actions Workflow<br/>(Auto Build & Deploy)"]:::pipeline
+    end
+
+    %% Flow connections
+    AndroidApp -->|Direct HTTPS REST requests| AppService
+    WebFrontend -->|Relative Proxy /api/v1/*| AppService
+    AppService -->|JDBC Data Persistence| Database
+    
+    %% Pipeline connections
+    GitHubActions -->|1. Build Docker Image| ACR
+    GitHubActions -->|2. Trigger Deploy| AppService
+    
+    %% Style links
+    linkStyle 0 stroke:#00FFFF,stroke-width:2px;
+    linkStyle 1 stroke:#00FFFF,stroke-width:2px;
+    linkStyle 2 stroke:#FF7F50,stroke-width:2px;
+    linkStyle 3 stroke:#A855F7,stroke-width:2px;
+    linkStyle 4 stroke:#A855F7,stroke-width:2px;
 ```
 
 ### Request Flow
-
-1. **User** opens the web app → Next.js serves the React app (the Android app talks to the API directly)
-2. **API calls** go to `/api/v1/*` → Next.js rewrites proxy to the Azure App Service backend
-3. **Backend** validates JWT, processes request, queries PostgreSQL
-4. **Stripe** webhooks notify backend on payment completion
-
-### Why This Architecture?
-
-- **Next.js proxy** — Avoids CORS issues by proxying API calls server-side
-- **Azure App Service** — Runs the Dockerized Spring Boot backend with HTTPS out of the box
-- **GitHub Actions** — Every push builds a Docker image, pushes it to Azure Container Registry, and deploys it
+1. **User Client Access**: A web browser requests Next.js frontend pages (rendered server-side/static) or an Android user launches the Kotlin application.
+2. **REST API Routing**:
+   - **Web Client**: Calls relative path `/api/v1/*`. Next.js proxies these calls to avoid CORS issues.
+   - **Android Client**: Talks directly to the Azure backend base URL via Retrofit with cookie/token interceptors.
+3. **Stateless Authentication**: The backend verifies incoming JWT access tokens. If expired, the Android client's `TokenAuthenticator` requests a token refresh transparently.
+4. **Database Operations**: The backend processes the request, computes dynamic strategy-based pricing, and queries PostgreSQL.
+5. **Third-Party Webhooks**: Stripe sends payment notifications to the webhook listener to verify and confirm booking reservations.
 
 ---
+
+## 📱 Android Client Architecture
+
+The mobile client is a modern, reactive Kotlin application built with **Jetpack Compose** and **Clean Architecture** patterns.
+
+### Technical Architecture
+- **MVI / MVVM Design Pattern**: ViewModels manage screen states reactively using StateFlow, keeping layouts purely declarative.
+- **Dependency Injection**: Powered by **Dagger Hilt** for modular, testable, and maintainable services.
+- **Robust Network Layer**: Retrofit + OkHttp with:
+  - `SessionCookieJar`: Keeps the secure HTTP-Only `refreshToken` cookie set by the `/auth/login` endpoint.
+  - `TokenAuthenticator`: Intercepts `401 Unauthorized` errors, requests a new access token via `/auth/refresh`, and transparently retries the failed request.
+- **Repository Pattern**: Abstracted repository interfaces split across distinct features (Auth, Booking, Hotel, Admin) for high testability.
+
+### 🎨 Graphics & Fluid Animations
+The Android app implements the unified **Midnight Glassmorphism** design system with rich, interactive transitions:
+- **Neon Glow Rings & Highlights**: Uses custom Canvas drawing functions to render glowing buttons and indicators in Cyan (`#00FFFF`) and Coral (`#FF7F50`).
+- **Frosted Glass Cards**: Uses Compose modifiers to draw semi-transparent overlays (`Color.White.copy(alpha = 0.05f)`) with custom shadows.
+- **Fluid Screen Transitions**: Animated content entries using `AnimatedVisibility` and smooth horizontal/vertical slide transitions during Navigation.
+- **Lottie Micro-interactions**: Smooth animated checks, loading rings, and empty-state illustrations that bring the UI to life.
+- **Parallax Scroll Effects**: Hotel detail pages feature parallax image scaling and header transitions.
+
+---
+
+## ☁️ Azure Cloud Infrastructure & CI/CD Pipeline
+
+The application is deployed on enterprise-grade Azure infrastructure with complete automation.
+
+### Cloud Services Used
+- **Azure App Service**: Hosts the Dockerized Spring Boot Java monolithic backend. Configured to scale and serve web requests securely over TLS/SSL.
+- **Azure Container Registry (ACR)**: Private container registry containing all compiled backend Docker tags.
+- **Azure Database for PostgreSQL**: Production database storing relation schemas (Hotels, Bookings, Users, Reviews, Promo Codes) with automated backups and connection encryption.
+
+### Continuous Integration & Deployment (CI/CD)
+The deployment is entirely automated via GitHub Actions:
+1. **Developer Push**: A commit pushed to `main` triggers the Azure Deployment workflow.
+2. **Multi-stage Docker Build**:
+   - The runner pulls a Maven container, resolves dependencies, compiles the code, and builds a production JAR.
+   - The JAR is copied to a slim, production-ready Eclipse Temurin JRE container.
+3. **Registry Upload**: The runner builds the Docker tags (`latest` and `$SHA`) and pushes them to Azure Container Registry.
+4. **App Service Rollout**: Azure App Service pulls the newly pushed image and performs a zero-downtime rolling update.
+
+---
+
 
 ## 📁 Project Structure
 
