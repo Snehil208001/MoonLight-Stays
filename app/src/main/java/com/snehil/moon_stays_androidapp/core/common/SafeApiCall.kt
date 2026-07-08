@@ -19,14 +19,15 @@ fun <T> safeApiCall(apiCall: suspend () -> Response<T>): Flow<NetworkResult<T>> 
                 @Suppress("UNCHECKED_CAST")
                 emit(NetworkResult.Success(Unit as T))
             } else {
-                emit(NetworkResult.Error("Response body was empty"))
+                emit(NetworkResult.Error(Exception("Response body was empty"), "Response body was empty"))
             }
         } else {
             val rawError = response.errorBody()?.string()
-            emit(NetworkResult.Error(parseErrorMessage(rawError) ?: response.message()))
+            val errorMsg = parseErrorMessage(rawError) ?: response.message()
+            emit(NetworkResult.Error(Exception(errorMsg), errorMsg))
         }
     } catch (e: Exception) {
-        emit(NetworkResult.Error(e.localizedMessage ?: "Unknown network error", e))
+        emit(NetworkResult.Error(e, e.localizedMessage ?: "Unknown network error"))
     }
 }.flowOn(Dispatchers.IO)
 

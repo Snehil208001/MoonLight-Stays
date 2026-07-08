@@ -18,19 +18,19 @@ class BookRoomUseCase @Inject constructor(
         bookingRepository.initialiseBooking(request).collect { initResult ->
             when (initResult) {
                 is NetworkResult.Loading -> emit(NetworkResult.Loading)
-                is NetworkResult.Error -> emit(NetworkResult.Error(initResult.message, initResult.cause))
+                is NetworkResult.Error -> emit(initResult)
                 is NetworkResult.Success -> {
                     val bookingId = initResult.data.id
                     bookingRepository.addGuests(bookingId, guests).collect { guestResult ->
                         when (guestResult) {
                             is NetworkResult.Loading -> emit(NetworkResult.Loading)
-                            is NetworkResult.Error -> emit(NetworkResult.Error(guestResult.message, guestResult.cause))
+                            is NetworkResult.Error -> emit(guestResult)
                             is NetworkResult.Success -> {
                                 // Once guests are added, proceed to payment
                                 bookingRepository.initiatePayment(bookingId).collect { paymentResult ->
                                     when (paymentResult) {
                                         is NetworkResult.Loading -> emit(NetworkResult.Loading)
-                                        is NetworkResult.Error -> emit(NetworkResult.Error(paymentResult.message, paymentResult.cause))
+                                        is NetworkResult.Error -> emit(paymentResult)
                                         is NetworkResult.Success -> {
                                             // Return success with the completed BookingDto
                                             emit(NetworkResult.Success(guestResult.data))
