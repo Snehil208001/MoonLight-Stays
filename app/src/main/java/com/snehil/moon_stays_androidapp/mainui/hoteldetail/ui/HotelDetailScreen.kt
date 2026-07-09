@@ -423,7 +423,9 @@ fun HotelDetailScreen(
                     val currentUserName by dashboardViewModel.userName.collectAsState()
 
                     val hasCompletedStay = bookings.any { b ->
-                        b.hotelId == hotelId && try {
+                        b.hotelId == hotelId && 
+                        (b.bookingStatus.equals("CONFIRMED", ignoreCase = true) || b.bookingStatus.equals("PAID", ignoreCase = true)) &&
+                        try {
                             val checkout = java.time.LocalDate.parse(b.checkOutDate)
                             val today = java.time.LocalDate.now()
                             checkout.isBefore(today) || checkout.isEqual(today)

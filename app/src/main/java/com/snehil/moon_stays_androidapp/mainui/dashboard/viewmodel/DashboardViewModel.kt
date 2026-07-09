@@ -54,7 +54,8 @@ data class BookingDto(
     val checkInDate: String,
     val checkOutDate: String,
     val totalAmount: Double,
-    val roomsCount: Int
+    val roomsCount: Int,
+    val bookingStatus: String = "CONFIRMED"
 )
 
 data class PromoCodeDto(
@@ -311,7 +312,8 @@ class DashboardViewModel @Inject constructor(
                                  checkInDate = dto.checkInDate,
                                  checkOutDate = dto.checkOutDate,
                                  totalAmount = dto.amount.toDouble(),
-                                 roomsCount = dto.roomsCount
+                                 roomsCount = dto.roomsCount,
+                                 bookingStatus = dto.bookingStatus
                              )
                          }
                         _bookings.value = mapped
