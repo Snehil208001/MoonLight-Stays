@@ -13,7 +13,7 @@ import javax.inject.Inject
 class BookRoomUseCase @Inject constructor(
     private val bookingRepository: BookingRepository
 ) {
-    operator fun invoke(request: BookingRequest, guests: List<GuestDto>): Flow<NetworkResult<BookingDto>> = flow {
+    operator fun invoke(request: BookingRequest, guests: List<GuestDto>): Flow<NetworkResult<String>> = flow {
         emit(NetworkResult.Loading)
         bookingRepository.initialiseBooking(request).collect { initResult ->
             when (initResult) {
@@ -32,8 +32,8 @@ class BookRoomUseCase @Inject constructor(
                                         is NetworkResult.Loading -> emit(NetworkResult.Loading)
                                         is NetworkResult.Error -> emit(paymentResult)
                                         is NetworkResult.Success -> {
-                                            // Return success with the completed BookingDto
-                                            emit(NetworkResult.Success(guestResult.data))
+                                            val sessionUrl = paymentResult.data["sessionUrl"] ?: ""
+                                            emit(NetworkResult.Success(sessionUrl))
                                         }
                                     }
                                 }

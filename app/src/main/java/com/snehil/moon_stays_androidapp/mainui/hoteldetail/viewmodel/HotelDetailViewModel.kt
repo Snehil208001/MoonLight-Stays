@@ -210,7 +210,8 @@ class HotelDetailViewModel @Inject constructor(
         checkOutDate: String,
         roomsCount: Int,
         totalAmount: Double,
-        onSuccess: (BookingRequest) -> Unit
+        guests: List<com.snehil.moon_stays_androidapp.data.remote.dto.GuestDto>,
+        onSuccess: (String) -> Unit
     ) {
         launchSafe {
             val request = com.snehil.moon_stays_androidapp.data.remote.dto.BookingRequest(
@@ -219,14 +220,6 @@ class HotelDetailViewModel @Inject constructor(
                 checkInDate = checkInDate,
                 checkOutDate = checkOutDate,
                 roomsCount = roomsCount
-            )
-            // Empty guest details template
-            val guests = listOf(
-                com.snehil.moon_stays_androidapp.data.remote.dto.GuestDto(
-                    name = "Primary Guest",
-                    gender = "MALE",
-                    age = 30
-                )
             )
             bookRoomUseCase(request, guests).collect { result ->
                 when (result) {
@@ -240,16 +233,7 @@ class HotelDetailViewModel @Inject constructor(
                     is NetworkResult.Success -> {
                         _isBookingLoading.value = false
                         _isBookingSuccess.value = true
-                        onSuccess(
-                            BookingRequest(
-                                hotelId = hotelId,
-                                roomId = roomId,
-                                checkInDate = checkInDate,
-                                checkOutDate = checkOutDate,
-                                roomsCount = roomsCount,
-                                totalAmount = totalAmount
-                            )
-                        )
+                        onSuccess(result.data)
                     }
                 }
             }
