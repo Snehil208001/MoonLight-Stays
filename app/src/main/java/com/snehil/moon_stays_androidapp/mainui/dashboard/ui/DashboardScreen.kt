@@ -391,7 +391,17 @@ fun HotelCard(
                     .fillMaxWidth()
                     .height(180.dp)
             ) {
-                HotelImagePlaceholder(name = hotelPrice.hotel.name)
+                val imageUrl = hotelPrice.hotel.photos.firstOrNull()
+                if (imageUrl.isNullOrEmpty()) {
+                    HotelImagePlaceholder(name = hotelPrice.hotel.name)
+                } else {
+                    coil.compose.AsyncImage(
+                        model = formatImageUrl(imageUrl),
+                        contentDescription = hotelPrice.hotel.name,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                    )
+                }
 
                 // Favorite Icon Button
                 Box(
@@ -826,3 +836,12 @@ fun DashboardBottomNavBar(
 // Utility border stroke generator
 private fun borderStroke(width: androidx.compose.ui.unit.Dp, color: Color) = 
     androidx.compose.foundation.BorderStroke(width, color)
+
+fun formatImageUrl(url: String?): String? {
+    if (url == null) return null
+    if (url.startsWith("http://") || url.startsWith("https://")) {
+        return url
+    }
+    val cleanUrl = if (url.startsWith("/")) url else "/$url"
+    return "https://moonlight-stays-backend-d6hga6dtg6c3cya2.centralindia-01.azurewebsites.net$cleanUrl"
+}

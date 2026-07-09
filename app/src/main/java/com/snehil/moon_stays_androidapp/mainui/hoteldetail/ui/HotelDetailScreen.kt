@@ -134,7 +134,17 @@ fun HotelDetailScreen(
                             .height(200.dp)
                             .clip(RoundedCornerShape(16.dp))
                     ) {
-                        HotelImagePlaceholder(name = hotel.name)
+                        val imageUrl = hotel.photos.firstOrNull()
+                        if (imageUrl.isNullOrEmpty()) {
+                            HotelImagePlaceholder(name = hotel.name)
+                        } else {
+                            coil.compose.AsyncImage(
+                                model = formatImageUrl(imageUrl),
+                                contentDescription = hotel.name,
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                            )
+                        }
                     }
                 }
 
@@ -223,52 +233,72 @@ fun HotelDetailScreen(
                             )
                             .clickable { selectedRoom = room }
                     ) {
-                        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(room.types, color = MoonPrimary, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                            verticalAlignment = Alignment.Top
+                        ) {
+                            val roomImageUrl = room.photos?.firstOrNull()
+                            if (!roomImageUrl.isNullOrEmpty()) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(80.dp)
+                                        .clip(RoundedCornerShape(8.dp))
                                 ) {
-                                    Icon(Icons.Default.Group, null, tint = MoonOnSurfaceVariant, modifier = Modifier.size(16.dp))
-                                    Text("Capacity: ${room.capacity}", color = MoonOnSurfaceVariant, fontSize = 12.sp)
+                                    coil.compose.AsyncImage(
+                                        model = formatImageUrl(roomImageUrl),
+                                        contentDescription = room.types,
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                                    )
                                 }
                             }
-
-                            // Dynamic room price reflecting active promo discount and dynamic pricing
-                            val priceInfo = roomPrices.find { it.roomId == room.id }
-                            val baselinePrice = priceInfo?.pricePerNight ?: room.basePrice
-                            val roomPrice = promoDiscount?.let { discount ->
-                                baselinePrice * (1.0 - discount / 100.0)
-                            } ?: baselinePrice
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.Bottom
-                            ) {
-                                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                    room.amenities.forEach { amenity ->
-                                        Text("• $amenity", color = MoonOnSurfaceVariant, fontSize = 11.sp)
+                            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(room.types, color = MoonPrimary, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        Icon(Icons.Default.Group, null, tint = MoonOnSurfaceVariant, modifier = Modifier.size(16.dp))
+                                        Text("Capacity: ${room.capacity}", color = MoonOnSurfaceVariant, fontSize = 12.sp)
                                     }
                                 }
-                                Column(horizontalAlignment = Alignment.End) {
-                                    if (promoDiscount != null) {
-                                        Text(
-                                            text = "₮${baselinePrice.toInt()}",
-                                            color = MoonOnSurfaceVariant,
-                                            fontSize = 11.sp,
-                                            style = MaterialTheme.typography.bodySmall.copy(
-                                                textDecoration = androidx.compose.ui.text.style.TextDecoration.LineThrough
-                                            )
-                                        )
+
+                                val priceInfo = roomPrices.find { it.roomId == room.id }
+                                val baselinePrice = priceInfo?.pricePerNight ?: room.basePrice
+                                val roomPrice = promoDiscount?.let { discount ->
+                                    baselinePrice * (1.0 - discount / 100.0)
+                                } ?: baselinePrice
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.Bottom
+                                ) {
+                                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                        room.amenities.forEach { amenity ->
+                                            Text("• $amenity", color = MoonOnSurfaceVariant, fontSize = 11.sp)
+                                        }
                                     }
-                                    Text("₮${roomPrice.toInt()}", color = MoonPrimaryFixedDim, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                                    Text("per night", color = MoonOnSurfaceVariant.copy(0.6f), fontSize = 9.sp)
+                                    Column(horizontalAlignment = Alignment.End) {
+                                        if (promoDiscount != null) {
+                                            Text(
+                                                text = "₮${baselinePrice.toInt()}",
+                                                color = MoonOnSurfaceVariant,
+                                                fontSize = 11.sp,
+                                                style = MaterialTheme.typography.bodySmall.copy(
+                                                    textDecoration = androidx.compose.ui.text.style.TextDecoration.LineThrough
+                                                )
+                                            )
+                                        }
+                                        Text("₮${roomPrice.toInt()}", color = MoonPrimaryFixedDim, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                                        Text("per night", color = MoonOnSurfaceVariant.copy(0.6f), fontSize = 9.sp)
+                                    }
                                 }
                             }
                         }
@@ -523,4 +553,13 @@ fun HotelDetailTopBar(
             fontWeight = FontWeight.Bold
         )
     }
+}
+
+fun formatImageUrl(url: String?): String? {
+    if (url == null) return null
+    if (url.startsWith("http://") || url.startsWith("https://")) {
+        return url
+    }
+    val cleanUrl = if (url.startsWith("/")) url else "/$url"
+    return "https://moonlight-stays-backend-d6hga6dtg6c3cya2.centralindia-01.azurewebsites.net$cleanUrl"
 }
