@@ -35,12 +35,25 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             MoonStaysAndroidAppTheme {
-                var currentScreen by remember { mutableStateOf<Screen>(Screen.Splash()) }
+                var screenStack by remember { mutableStateOf(listOf<Screen>(Screen.Splash())) }
+                val currentScreen = screenStack.last()
+
+                // Intercept system back press when stack has history
+                androidx.activity.compose.BackHandler(enabled = screenStack.size > 1) {
+                    screenStack = screenStack.dropLast(1)
+                }
 
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     NavGraph(
                         currentScreen = currentScreen,
-                        onNavigate = { currentScreen = it },
+                        onNavigate = { nextScreen ->
+                            screenStack = when (nextScreen) {
+                                is Screen.Dashboard -> listOf(nextScreen) // clear stack on root screens
+                                is Screen.Login -> listOf(nextScreen)
+                                is Screen.Splash -> listOf(nextScreen)
+                                else -> screenStack + nextScreen
+                            }
+                        },
                         splashViewModel = splashViewModel,
                         loginViewModel = loginViewModel,
                         signUpViewModel = signUpViewModel,
