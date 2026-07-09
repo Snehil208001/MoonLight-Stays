@@ -40,16 +40,10 @@ public class ReviewServiceImpl implements ReviewService {
         Hotel hotel = hotelRepository.findById(hotelId)
                 .orElseThrow(() -> new ResourceNotFoundException("Hotel not found with ID: " + hotelId));
 
-        // 1. Core Rule: Must have a CONFIRMED booking where check-out date is today or has passed
-        List<com.moonlight.project.airBnbApp.entity.Booking> userBookings = bookingRepository.findByUserAndHotelAndBookingStatus(currentUser, hotel, BookingStatus.CONFIRMED);
-        boolean hasCompletedStay = userBookings.stream()
-                .anyMatch(booking -> {
-                    java.time.LocalDate checkout = booking.getCheckOutDate();
-                    java.time.LocalDate today = java.time.LocalDate.now();
-                    return checkout.isBefore(today) || checkout.isEqual(today);
-                });
-        if (!hasCompletedStay) {
-            throw new IllegalStateException("You can only review hotels where you have a confirmed booking and the checkout date has passed.");
+        // 1. Core Rule: Must have a CONFIRMED booking
+        boolean hasBooked = bookingRepository.existsByUserAndHotelAndBookingStatus(currentUser, hotel, BookingStatus.CONFIRMED);
+        if (!hasBooked) {
+            throw new IllegalStateException("You can only review hotels where you have a confirmed booking.");
         }
 
         // 2. Core Rule: One review per user per hotel
