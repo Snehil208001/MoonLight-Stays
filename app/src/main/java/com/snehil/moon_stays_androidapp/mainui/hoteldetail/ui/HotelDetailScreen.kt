@@ -419,6 +419,25 @@ fun HotelDetailScreen(
                 item {
                     val reviewsMap by detailViewModel.reviews.collectAsState()
                     val hotelReviews = reviewsMap[hotelId] ?: emptyList()
+                    val bookings by dashboardViewModel.bookings.collectAsState()
+                    val currentUserName by dashboardViewModel.userName.collectAsState()
+
+                    val hasCompletedStay = bookings.any { b ->
+                        b.hotelId == hotelId && try {
+                            val checkout = java.time.LocalDate.parse(b.checkOutDate)
+                            val today = java.time.LocalDate.now()
+                            checkout.isBefore(today) || checkout.isEqual(today)
+                        } catch (e: Exception) {
+                            false
+                        }
+                    }
+
+                    val alreadyReviewed = hotelReviews.any { r ->
+                        r.userName.equals(currentUserName, ignoreCase = true)
+                    }
+
+                    val canReview = hasCompletedStay && !alreadyReviewed
+
                     var showReviewForm by remember { mutableStateOf(false) }
                     var ratingSelected by remember { mutableStateOf(5) }
                     var reviewContentInput by remember { mutableStateOf("") }
@@ -430,7 +449,7 @@ fun HotelDetailScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text("Reviews (${hotelReviews.size})", color = MoonPrimary, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                            if (!showReviewForm) {
+                            if (canReview && !showReviewForm) {
                                 Text(
                                     text = "Add Review",
                                     color = MoonPrimaryFixedDim,

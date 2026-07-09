@@ -94,9 +94,16 @@ export default function HotelDetailPage() {
     }
     Promise.all([api.getMyBookings(0, 100), api.getHotelReviews(id, 0, 100)])
       .then(([bookingsRes, revRes]) => {
-        const confirmedForHotel = (bookingsRes.content ?? []).some(
-          (b) => b.hotel?.id === id && (b.bookingStatus === "CONFIRMED" || b.bookingStatus === "PAID")
-        );
+        const confirmedForHotel = (bookingsRes.content ?? []).some((b) => {
+          if (b.hotel?.id !== id) return false;
+          if (b.bookingStatus !== "CONFIRMED" && b.bookingStatus !== "PAID") return false;
+          
+          const checkoutDate = new Date(b.checkOutDate);
+          const today = new Date();
+          checkoutDate.setHours(0, 0, 0, 0);
+          today.setHours(0, 0, 0, 0);
+          return checkoutDate <= today;
+        });
         const alreadyReviewed = (revRes.content ?? []).some((r) => r.userId === user.id);
         setCanReview(confirmedForHotel && !alreadyReviewed);
       })
