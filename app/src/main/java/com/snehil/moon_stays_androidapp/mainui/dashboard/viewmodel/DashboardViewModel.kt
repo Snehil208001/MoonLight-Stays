@@ -23,6 +23,8 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import java.math.BigDecimal
 import javax.inject.Inject
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.RequestBody.Companion.asRequestBody
 
 data class Hotel(
     val id: Int,
@@ -799,6 +801,30 @@ class DashboardViewModel @Inject constructor(
                         _errorMessage.value = result.message
                     }
                     is NetworkResult.Loading -> {}
+                }
+            }
+        }
+    }
+
+    fun uploadImage(file: java.io.File, onResult: (String?) -> Unit) {
+        launchSafe {
+            val requestBody = file.asRequestBody("image/*".toMediaTypeOrNull())
+            val part = okhttp3.MultipartBody.Part.createFormData("file", file.name, requestBody)
+            adminRepository.uploadImage(part).collect { result ->
+                when (result) {
+                    is NetworkResult.Loading -> {
+                        _isLoading.value = true
+                    }
+                    is NetworkResult.Success -> {
+                        _isLoading.value = false
+                        val url = result.data?.get("url") ?: result.data?.get("data")
+                        onResult(url)
+                    }
+                    is NetworkResult.Error -> {
+                        _isLoading.value = false
+                        _errorMessage.value = result.message
+                        onResult(null)
+                    }
                 }
             }
         }

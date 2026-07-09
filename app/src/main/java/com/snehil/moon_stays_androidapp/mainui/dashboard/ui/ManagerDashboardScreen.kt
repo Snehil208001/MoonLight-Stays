@@ -90,16 +90,54 @@ fun DatePickerField(
     }
 }
 
+fun getFileFromUri(context: android.content.Context, uri: android.net.Uri): java.io.File? {
+    return try {
+        val inputStream = context.contentResolver.openInputStream(uri) ?: return null
+        val tempFile = java.io.File.createTempFile("upload_", ".jpg", context.cacheDir)
+        tempFile.deleteOnExit()
+        val outputStream = java.io.FileOutputStream(tempFile)
+        inputStream.use { input ->
+            outputStream.use { output ->
+                input.copyTo(output)
+            }
+        }
+        tempFile
+    } catch (e: Exception) {
+        e.printStackTrace()
+        null
+    }
+}
+
 @Composable
 fun PhotosInputView(
     photos: List<String>,
     onPhotosChange: (List<String>) -> Unit,
+    onUploadClick: (java.io.File, (String?) -> Unit) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var photoUrlInput by remember { mutableStateOf("") }
-    
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text("Photos (URLs)", color = MoonOnSurfaceVariant, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+    val context = androidx.compose.ui.platform.LocalContext.current
+    var isUploading by remember { mutableStateOf(false) }
+
+    val selectImageLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        contract = androidx.activity.result.contract.ActivityResultContracts.GetContent()
+    ) { uri: android.net.Uri? ->
+        uri?.let {
+            val file = getFileFromUri(context, it)
+            if (file != null) {
+                isUploading = true
+                onUploadClick(file) { uploadedUrl ->
+                    isUploading = false
+                    if (uploadedUrl != null) {
+                        onPhotosChange(photos + uploadedUrl)
+                    }
+                }
+            }
+        }
+    }
+
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text("Photos", color = MoonOnSurfaceVariant, fontSize = 12.sp, fontWeight = FontWeight.Bold)
         
         photos.forEach { url ->
             Row(
@@ -156,6 +194,36 @@ fun PhotosInputView(
                 shape = RoundedCornerShape(8.dp)
             ) {
                 Text("Add", color = MoonPrimaryFixedDim, fontSize = 12.sp)
+            }
+        }
+
+        Button(
+            onClick = { selectImageLauncher.launch("image/*") },
+            modifier = Modifier.fillMaxWidth().height(40.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MoonPrimaryFixedDim,
+                contentColor = Color.Black
+            ),
+            shape = RoundedCornerShape(8.dp),
+            enabled = !isUploading
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                if (isUploading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        color = Color.Black,
+                        strokeWidth = 2.dp
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Uploading...", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                } else {
+                    Icon(Icons.Default.Upload, null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Upload Photo from Device", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                }
             }
         }
     }
@@ -360,82 +428,118 @@ fun ManagerHotelsTab(
                     .border(1.dp, Color(0x1AFFFFFF), RoundedCornerShape(16.dp))
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.Top
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Text(hotel.name, color = MoonPrimary, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                                Box(
-                                    modifier = Modifier
-                                        .background(
-                                            if (hotel.active) Color(0x3300FF00) else Color(0x33FF9800),
-                                            RoundedCornerShape(4.dp)
-                                        )
-                                        .padding(horizontal = 6.dp, vertical = 2.dp)
-                                ) {
-                                    Text(
-                                        if (hotel.active) "Active" else "Inactive",
-                                        color = if (hotel.active) Color.Green else Color(0xFFFF9800),
-                                        fontSize = 10.sp,
-                                        fontWeight = FontWeight.Bold
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(hotel.name, color = MoonPrimary, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                            Box(
+                                modifier = Modifier
+                                    .background(
+                                        if (hotel.active) Color(0x3300FF00) else Color(0x33FF9800),
+                                        RoundedCornerShape(4.dp)
                                     )
-                                }
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                            ) {
+                                Text(
+                                    if (hotel.active) "Active" else "Inactive",
+                                    color = if (hotel.active) Color.Green else Color(0xFFFF9800),
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
                             }
-                            Text(hotel.location, color = MoonOnSurfaceVariant, fontSize = 12.sp)
                         }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(hotel.location, color = MoonOnSurfaceVariant, fontSize = 12.sp)
+
+                        Spacer(modifier = Modifier.height(12.dp))
 
                         Row(
+                            modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            IconButton(
-                                onClick = { viewModel.toggleHotelStatus(hotel.id) },
-                                modifier = Modifier.size(36.dp).background(Color(0x14FFFFFF), CircleShape)
+                            // Active status toggle chip
+                            Row(
+                                modifier = Modifier
+                                    .background(Color(0x0DFFFFFF), RoundedCornerShape(8.dp))
+                                    .border(1.dp, Color(0x1AFFFFFF), RoundedCornerShape(8.dp))
+                                    .clickable { viewModel.toggleHotelStatus(hotel.id) }
+                                    .padding(horizontal = 8.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
                                 Icon(
                                     imageVector = if (hotel.active) Icons.Default.ToggleOn else Icons.Default.ToggleOff,
                                     contentDescription = "Toggle Status",
                                     tint = if (hotel.active) Color.Green else Color.Gray,
-                                    modifier = Modifier.size(20.dp)
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Text(
+                                    text = if (hotel.active) "Disable" else "Enable",
+                                    color = MoonOnSurface,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Medium
                                 )
                             }
-                            IconButton(
-                                onClick = {
-                                    editingHotel = hotel
-                                    hotelName = hotel.name
-                                    hotelCity = hotel.city
-                                    hotelAddress = hotel.address
-                                    hotelPhone = hotel.phoneNumber
-                                    hotelEmail = hotel.email
-                                    hotelAmenities = hotel.amenities.joinToString(", ")
-                                    hotelPhotos = hotel.photos
-                                },
-                                modifier = Modifier.size(36.dp).background(Color(0x14FFFFFF), CircleShape)
+
+                            // Edit button
+                            Row(
+                                modifier = Modifier
+                                    .background(Color(0x0DFFFFFF), RoundedCornerShape(8.dp))
+                                    .border(1.dp, Color(0x1AFFFFFF), RoundedCornerShape(8.dp))
+                                    .clickable {
+                                        editingHotel = hotel
+                                        hotelName = hotel.name
+                                        hotelCity = hotel.city
+                                        hotelAddress = hotel.address
+                                        hotelPhone = hotel.phoneNumber
+                                        hotelEmail = hotel.email
+                                        hotelAmenities = hotel.amenities.joinToString(", ")
+                                        hotelPhotos = hotel.photos
+                                    }
+                                    .padding(horizontal = 8.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
-                                Icon(Icons.Default.Edit, "Edit", tint = MoonPrimary, modifier = Modifier.size(18.dp))
+                                Icon(Icons.Default.Edit, "Edit", tint = MoonPrimary, modifier = Modifier.size(14.dp))
+                                Text("Edit", color = MoonOnSurface, fontSize = 10.sp, fontWeight = FontWeight.Medium)
                             }
-                            IconButton(
-                                onClick = { 
-                                    showSurgeDialogForHotelId = hotel.id
-                                    surgeFactorInput = hotel.surgeFactor.toString()
-                                    surgeStartDate = ""
-                                    surgeEndDate = ""
-                                },
-                                modifier = Modifier.size(36.dp).background(Color(0x14FFFFFF), CircleShape)
+
+                            // Surge pricing button
+                            Row(
+                                modifier = Modifier
+                                    .background(Color(0x0DFFFFFF), RoundedCornerShape(8.dp))
+                                    .border(1.dp, Color(0x1AFFFFFF), RoundedCornerShape(8.dp))
+                                    .clickable {
+                                        showSurgeDialogForHotelId = hotel.id
+                                        surgeFactorInput = hotel.surgeFactor.toString()
+                                        surgeStartDate = ""
+                                        surgeEndDate = ""
+                                    }
+                                    .padding(horizontal = 8.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
-                                Icon(Icons.Default.TrendingUp, "Surge Factor", tint = MoonPrimary, modifier = Modifier.size(18.dp))
+                                Icon(Icons.Default.TrendingUp, "Surge Factor", tint = MoonPrimary, modifier = Modifier.size(14.dp))
+                                Text("Surge", color = MoonOnSurface, fontSize = 10.sp, fontWeight = FontWeight.Medium)
                             }
-                            IconButton(
-                                onClick = { onDeleteRequest(DeleteConfirmState("hotel", hotelId = hotel.id)) },
-                                modifier = Modifier.size(36.dp).background(Color(0x1A690005), CircleShape)
+
+                            Spacer(modifier = Modifier.weight(1f))
+
+                            // Delete button
+                            Row(
+                                modifier = Modifier
+                                    .background(Color(0x1A690005), RoundedCornerShape(8.dp))
+                                    .border(1.dp, Color(0x4DFF0000), RoundedCornerShape(8.dp))
+                                    .clickable { onDeleteRequest(DeleteConfirmState("hotel", hotelId = hotel.id)) }
+                                    .padding(horizontal = 8.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
-                                Icon(Icons.Default.Delete, "Delete", tint = Color.Red, modifier = Modifier.size(18.dp))
+                                Icon(Icons.Default.Delete, "Delete", tint = Color.Red, modifier = Modifier.size(14.dp))
+                                Text("Delete", color = Color.Red, fontSize = 10.sp, fontWeight = FontWeight.Medium)
                             }
                         }
                     }
@@ -568,6 +672,9 @@ fun ManagerHotelsTab(
                         PhotosInputView(
                             photos = hotelPhotos,
                             onPhotosChange = { hotelPhotos = it },
+                            onUploadClick = { file, callback ->
+                                viewModel.uploadImage(file, callback)
+                            },
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
@@ -633,6 +740,9 @@ fun ManagerHotelsTab(
                         PhotosInputView(
                             photos = roomPhotos,
                             onPhotosChange = { roomPhotos = it },
+                            onUploadClick = { file, callback ->
+                                viewModel.uploadImage(file, callback)
+                            },
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
