@@ -170,6 +170,15 @@ fun ManagerDashboardScreen(
     var activeTab by remember { mutableStateOf("Hotels") }
     var showDeleteConfirm by remember { mutableStateOf<DeleteConfirmState?>(null) }
 
+    // Intercept back press: go back to Hotels tab if on another tab, otherwise exit Manager Mode
+    androidx.activity.compose.BackHandler(enabled = true) {
+        if (activeTab != "Hotels") {
+            activeTab = "Hotels"
+        } else {
+            viewModel.setManagerMode(false)
+        }
+    }
+
     val context = LocalContext.current
     val errorMessage by viewModel.errorMessage.collectAsState()
 

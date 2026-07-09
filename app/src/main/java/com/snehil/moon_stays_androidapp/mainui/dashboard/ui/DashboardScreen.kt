@@ -45,6 +45,11 @@ fun DashboardScreen(
 ) {
     var activeTab by remember { mutableStateOf("Explore") }
 
+    // Intercept back press to return to the Explore tab if on another tab
+    androidx.activity.compose.BackHandler(enabled = activeTab != "Explore") {
+        activeTab = "Explore"
+    }
+
     val context = androidx.compose.ui.platform.LocalContext.current
     val errorMessage by viewModel.errorMessage.collectAsState()
 
