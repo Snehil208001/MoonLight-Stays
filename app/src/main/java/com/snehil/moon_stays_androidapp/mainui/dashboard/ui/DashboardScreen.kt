@@ -843,5 +843,5 @@ fun formatImageUrl(url: String?): String? {
         return url
     }
     val cleanUrl = if (url.startsWith("/")) url else "/$url"
-    return "https://moonlight-stays-backend-d6hga6dtg6c3cya2.centralindia-01.azurewebsites.net$cleanUrl"
+    return "https://moonlight-stays-backend-d6hga6dtg6c3cya2.centralindia-01.azurewebsites.net/api/v1$cleanUrl"
 }
