@@ -86,9 +86,7 @@ fun SignUpScreen(
     val fullName by viewModel.fullName.collectAsState()
     val email by viewModel.email.collectAsState()
     val password by viewModel.password.collectAsState()
-    val confirmPassword by viewModel.confirmPassword.collectAsState()
     val passwordVisible by viewModel.passwordVisible.collectAsState()
-    val confirmPasswordVisible by viewModel.confirmPasswordVisible.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val signUpSuccess by viewModel.signUpSuccess.collectAsState()
 
@@ -338,118 +336,58 @@ fun SignUpScreen(
 
                     Spacer(modifier = Modifier.height(18.dp))
 
-                    // Password Fields Row
-                    Row(
+                    // Password Field
+                    Column(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        horizontalAlignment = Alignment.Start
                     ) {
-                        // Password Field
-                        Column(
-                            modifier = Modifier.weight(1f),
-                            horizontalAlignment = Alignment.Start
-                        ) {
-                            Text(
-                                text = "Password",
-                                color = MoonOnSurfaceVariant,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Medium,
-                                modifier = Modifier.padding(start = 4.dp, bottom = 6.dp)
-                            )
-                            OutlinedTextField(
-                                value = password,
-                                onValueChange = viewModel::onPasswordChanged,
-                                modifier = Modifier.fillMaxWidth(),
-                                placeholder = {
-                                    Text(
-                                        "••••••••",
-                                        color = MoonOnSurfaceVariant.copy(alpha = 0.4f),
-                                        fontSize = 14.sp
-                                    )
-                                },
-                                leadingIcon = {
+                        Text(
+                            text = "Password",
+                            color = MoonOnSurfaceVariant,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.padding(start = 4.dp, bottom = 6.dp)
+                        )
+                        OutlinedTextField(
+                            value = password,
+                            onValueChange = viewModel::onPasswordChanged,
+                            modifier = Modifier.fillMaxWidth(),
+                            placeholder = {
+                                Text(
+                                    "••••••••",
+                                    color = MoonOnSurfaceVariant.copy(alpha = 0.4f),
+                                    fontSize = 14.sp
+                                )
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Default.Lock,
+                                    contentDescription = "Lock Icon",
+                                    tint = MoonOnSurfaceVariant,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            },
+                            trailingIcon = {
+                                IconButton(onClick = viewModel::togglePasswordVisibility) {
                                     Icon(
-                                        imageVector = Icons.Default.Lock,
-                                        contentDescription = "Lock Icon",
-                                        tint = MoonOnSurfaceVariant,
-                                        modifier = Modifier.size(20.dp)
+                                        imageVector = if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                        contentDescription = "Toggle Visibility",
+                                        tint = MoonOnSurfaceVariant
                                     )
-                                },
-                                trailingIcon = {
-                                    IconButton(onClick = viewModel::togglePasswordVisibility) {
-                                        Icon(
-                                            imageVector = if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                            contentDescription = "Toggle Visibility",
-                                            tint = MoonOnSurfaceVariant
-                                        )
-                                    }
-                                },
-                                visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                                singleLine = true,
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor = MoonPrimaryFixedDim,
-                                    unfocusedBorderColor = Color(0x1AFFFFFF),
-                                    focusedContainerColor = Color(0x0DFFFFFF),
-                                    unfocusedContainerColor = Color(0x08FFFFFF),
-                                    focusedTextColor = MoonPrimary,
-                                    unfocusedTextColor = MoonPrimary
-                                ),
-                                shape = RoundedCornerShape(12.dp)
-                            )
-                        }
-
-                        // Confirm Password Field
-                        Column(
-                            modifier = Modifier.weight(1f),
-                            horizontalAlignment = Alignment.Start
-                        ) {
-                            Text(
-                                text = "Confirm",
-                                color = MoonOnSurfaceVariant,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Medium,
-                                modifier = Modifier.padding(start = 4.dp, bottom = 6.dp)
-                            )
-                            OutlinedTextField(
-                                value = confirmPassword,
-                                onValueChange = viewModel::onConfirmPasswordChanged,
-                                modifier = Modifier.fillMaxWidth(),
-                                placeholder = {
-                                    Text(
-                                        "••••••••",
-                                        color = MoonOnSurfaceVariant.copy(alpha = 0.4f),
-                                        fontSize = 14.sp
-                                    )
-                                },
-                                leadingIcon = {
-                                    Icon(
-                                        imageVector = Icons.Default.Shield,
-                                        contentDescription = "Shield Icon",
-                                        tint = MoonOnSurfaceVariant,
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                },
-                                trailingIcon = {
-                                    IconButton(onClick = viewModel::toggleConfirmPasswordVisibility) {
-                                        Icon(
-                                            imageVector = if (confirmPasswordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                            contentDescription = "Toggle Visibility",
-                                            tint = MoonOnSurfaceVariant
-                                        )
-                                    }
-                                },
-                                visualTransformation = if (confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                                singleLine = true,
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor = MoonPrimaryFixedDim,
-                                    unfocusedBorderColor = Color(0x1AFFFFFF),
-                                    focusedContainerColor = Color(0x0DFFFFFF),
-                                    unfocusedContainerColor = Color(0x08FFFFFF),
-                                    focusedTextColor = MoonPrimary,
-                                    unfocusedTextColor = MoonPrimary
-                                ),
-                                shape = RoundedCornerShape(12.dp)
-                            )
-                        }
+                                }
+                            },
+                            visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                            singleLine = true,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = MoonPrimaryFixedDim,
+                                unfocusedBorderColor = Color(0x1AFFFFFF),
+                                focusedContainerColor = Color(0x0DFFFFFF),
+                                unfocusedContainerColor = Color(0x08FFFFFF),
+                                focusedTextColor = MoonPrimary,
+                                unfocusedTextColor = MoonPrimary
+                            ),
+                            shape = RoundedCornerShape(12.dp)
+                        )
                     }
 
                     Spacer(modifier = Modifier.height(18.dp))
@@ -495,7 +433,7 @@ fun SignUpScreen(
                             contentColor = MoonPrimaryFixedDim
                         ),
                         shape = RoundedCornerShape(12.dp),
-                        enabled = !isLoading && fullName.isNotBlank() && email.isNotBlank() && password.isNotBlank() && confirmPassword == password
+                        enabled = !isLoading && fullName.isNotBlank() && email.isNotBlank() && password.isNotBlank()
                     ) {
                         if (isLoading) {
                             CircularProgressIndicator(
@@ -523,80 +461,7 @@ fun SignUpScreen(
                         }
                     }
 
-                    // OR CONTINUE WITH Divider
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 24.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(1.dp)
-                                .background(Color(0x1AFFFFFF))
-                        )
-                        Text(
-                            text = "OR CONTINUE WITH",
-                            color = MoonOnSurfaceVariant.copy(alpha = 0.6f),
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 2.sp,
-                            modifier = Modifier.padding(horizontal = 16.dp)
-                        )
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(1.dp)
-                                .background(Color(0x1AFFFFFF))
-                        )
-                    }
-
-                    // Social Buttons (Mock / UI only to match Stitch specs)
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Button(
-                            onClick = { /* Google Action */ },
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(48.dp)
-                                .border(
-                                    width = 1.dp,
-                                    color = Color(0x1AFFFFFF),
-                                    shape = RoundedCornerShape(12.dp)
-                                ),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0x08FFFFFF),
-                                contentColor = MoonOnSurface
-                            ),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Text("Google", fontSize = 14.sp, fontWeight = FontWeight.Medium)
-                        }
-
-                        Button(
-                            onClick = { /* GitHub Action */ },
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(48.dp)
-                                .border(
-                                    width = 1.dp,
-                                    color = Color(0x1AFFFFFF),
-                                    shape = RoundedCornerShape(12.dp)
-                                ),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0x08FFFFFF),
-                                contentColor = MoonOnSurface
-                            ),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Text("GitHub", fontSize = 14.sp, fontWeight = FontWeight.Medium)
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(28.dp))
+                    Spacer(modifier = Modifier.height(24.dp))
 
                     // Already have account link
                     Row(
@@ -623,54 +488,6 @@ fun SignUpScreen(
             }
 
             Spacer(modifier = Modifier.height(24.dp))
-
-            // System Status Bar (ATS Style/Diagnostic) at the bottom
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(6.dp)
-                            .background(Color(0xFF00E479), CircleShape)
-                    )
-                    Text(
-                        text = "SECURE AUTH NODE: 0x44F",
-                        color = MoonOnSurfaceVariant.copy(alpha = 0.5f),
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.sp
-                    )
-                }
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Text(
-                        text = "ENCRYPTION: AES-256",
-                        color = MoonOnSurfaceVariant.copy(alpha = 0.5f),
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.sp
-                    )
-                    Icon(
-                        imageVector = Icons.Default.VerifiedUser,
-                        contentDescription = "Verified User",
-                        tint = MoonOnSurfaceVariant.copy(alpha = 0.5f),
-                        modifier = Modifier.size(14.dp)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(48.dp))
         }
     }
 }

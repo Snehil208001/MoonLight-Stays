@@ -24,14 +24,8 @@ class SignUpScreenViewModel @Inject constructor(
     private val _password = MutableStateFlow("")
     val password: StateFlow<String> = _password.asStateFlow()
 
-    private val _confirmPassword = MutableStateFlow("")
-    val confirmPassword: StateFlow<String> = _confirmPassword.asStateFlow()
-
     private val _passwordVisible = MutableStateFlow(false)
     val passwordVisible: StateFlow<Boolean> = _passwordVisible.asStateFlow()
-
-    private val _confirmPasswordVisible = MutableStateFlow(false)
-    val confirmPasswordVisible: StateFlow<Boolean> = _confirmPasswordVisible.asStateFlow()
 
     private val _signUpSuccess = MutableStateFlow(false)
     val signUpSuccess: StateFlow<Boolean> = _signUpSuccess.asStateFlow()
@@ -48,24 +42,14 @@ class SignUpScreenViewModel @Inject constructor(
         _password.value = newValue
     }
 
-    fun onConfirmPasswordChanged(newValue: String) {
-        _confirmPassword.value = newValue
-    }
-
     fun togglePasswordVisibility() {
         _passwordVisible.value = !_passwordVisible.value
-    }
-
-    fun toggleConfirmPasswordVisibility() {
-        _confirmPasswordVisible.value = !_confirmPasswordVisible.value
     }
 
     fun signUp() {
         if (_fullName.value.isBlank() ||
             _email.value.isBlank() ||
-            _password.value.isBlank() ||
-            _confirmPassword.value.isBlank() ||
-            _password.value != _confirmPassword.value
+            _password.value.isBlank()
         ) return
 
         launchSafe {
