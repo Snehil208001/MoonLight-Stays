@@ -97,6 +97,16 @@ fun SignUpScreen(
         }
     }
 
+    val errorMessage by viewModel.errorMessage.collectAsState()
+    val context = androidx.compose.ui.platform.LocalContext.current
+
+    LaunchedEffect(errorMessage) {
+        errorMessage?.let {
+            android.widget.Toast.makeText(context, it, android.widget.Toast.LENGTH_LONG).show()
+            viewModel.clearError()
+        }
+    }
+
     val infiniteTransition = rememberInfiniteTransition(label = "signup_animations")
 
     // Shader time driver
