@@ -32,12 +32,35 @@ fun <T> safeApiCall(apiCall: suspend () -> Response<T>): Flow<NetworkResult<T>> 
 }.flowOn(Dispatchers.IO)
 
 // Backend errors arrive as {"timeStamp":...,"data":null,"error":{"status":...,"message":...}}
+// Or sometimes wrapped validation errors inside the "data" field
 private fun parseErrorMessage(rawError: String?): String? {
     if (rawError.isNullOrBlank()) return null
     return try {
         val root = JsonParser.parseString(rawError).asJsonObject
-        root.getAsJsonObject("error")?.get("message")?.takeIf { it.isJsonPrimitive }?.asString
+        
+        // 1. Check if root has "error" object
+        if (root.has("error") && root.get("error").isJsonObject) {
+            val errorObj = root.getAsJsonObject("error")
+            if (errorObj.has("message") && errorObj.get("message").isJsonPrimitive) {
+                return errorObj.get("message").asString
+            }
+        }
+        
+        // 2. Check if root has "data" object (e.g. validation error wrapped inside data)
+        if (root.has("data") && root.get("data").isJsonObject) {
+            val dataObj = root.getAsJsonObject("data")
+            if (dataObj.has("message") && dataObj.get("message").isJsonPrimitive) {
+                return dataObj.get("message").asString
+            }
+        }
+        
+        // 3. Check if root has "message" directly
+        if (root.has("message") && root.get("message").isJsonPrimitive) {
+            return root.get("message").asString
+        }
+        
+        null
     } catch (e: Exception) {
-        rawError
+        null
     }
 }

@@ -247,15 +247,7 @@ fun ManagerDashboardScreen(
         }
     }
 
-    val context = LocalContext.current
-    val errorMessage by viewModel.errorMessage.collectAsState()
 
-    LaunchedEffect(errorMessage) {
-        errorMessage?.let {
-            android.widget.Toast.makeText(context, it, android.widget.Toast.LENGTH_LONG).show()
-            viewModel.clearError()
-        }
-    }
 
     Scaffold(
         topBar = {
