@@ -18,17 +18,22 @@ export function extractDirectImageUrl(input: string): string {
   return trimmed;
 }
 
+const NEXT_PUBLIC_API_URL = process.env.NEXT_PUBLIC_API_URL || (process.env.NODE_ENV === 'production'
+  ? 'https://moonlight-stays-backend-d6hga6dtg6c3cya2.centralindia-01.azurewebsites.net/api/v1'
+  : 'http://localhost:8080/api/v1');
+
 /**
  * Resolves a photo URL for display. Handles:
  * - Full URLs (http/https) - use as-is
- * - Absolute paths (/images/xyz) - use as-is (Next.js rewrites proxy to backend)
- * - Relative/filenames (xyz) - normalize to /images/xyz
+ * - Relative or absolute paths (/images/xyz or images/xyz) - prepend API base URL
  */
 export function getImageSrc(url: string): string {
   if (!url?.trim()) return "";
   const u = url.trim();
   if (u.startsWith("http://") || u.startsWith("https://")) return u;
-  return u.startsWith("/") ? u : `/images/${u}`;
+  const cleanUrl = u.startsWith("/") ? u : `/${u}`;
+  const apiBase = NEXT_PUBLIC_API_URL.endsWith('/') ? NEXT_PUBLIC_API_URL.slice(0, -1) : NEXT_PUBLIC_API_URL;
+  return `${apiBase}${cleanUrl}`;
 }
 
 /**

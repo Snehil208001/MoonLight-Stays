@@ -134,16 +134,52 @@ fun HotelDetailScreen(
                             .height(200.dp)
                             .clip(RoundedCornerShape(16.dp))
                     ) {
-                        val imageUrl = hotel.photos.firstOrNull()
-                        if (imageUrl.isNullOrEmpty()) {
+                        val photos = hotel.photos.filter { !it.isNullOrEmpty() }
+                        if (photos.isEmpty()) {
                             HotelImagePlaceholder(name = hotel.name)
-                        } else {
+                        } else if (photos.size == 1) {
                             coil.compose.AsyncImage(
-                                model = formatImageUrl(imageUrl),
+                                model = formatImageUrl(photos[0]),
                                 contentDescription = hotel.name,
                                 modifier = Modifier.fillMaxSize(),
                                 contentScale = androidx.compose.ui.layout.ContentScale.Crop
                             )
+                        } else {
+                            val pagerState = androidx.compose.foundation.pager.rememberPagerState(pageCount = { photos.size })
+                            Box(modifier = Modifier.fillMaxSize()) {
+                                androidx.compose.foundation.pager.HorizontalPager(
+                                    state = pagerState,
+                                    modifier = Modifier.fillMaxSize()
+                                ) { page ->
+                                    coil.compose.AsyncImage(
+                                        model = formatImageUrl(photos[page]),
+                                        contentDescription = "${hotel.name} - Image ${page + 1}",
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                                    )
+                                }
+                                // Pager Indicator
+                                Row(
+                                    Modifier
+                                        .height(24.dp)
+                                        .fillMaxWidth()
+                                        .align(Alignment.BottomCenter)
+                                        .background(Color(0x40000000)),
+                                    horizontalArrangement = Arrangement.Center,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    repeat(photos.size) { iteration ->
+                                        val color = if (pagerState.currentPage == iteration) MoonPrimaryFixedDim else Color.White.copy(alpha = 0.5f)
+                                        Box(
+                                            modifier = Modifier
+                                                .padding(3.dp)
+                                                .clip(CircleShape)
+                                                .background(color)
+                                                .size(6.dp)
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
                 }
