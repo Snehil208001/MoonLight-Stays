@@ -147,6 +147,7 @@ fun DashboardTopBar(activeTab: String) {
 }
 
 @Composable
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 fun ExploreTabContent(
     viewModel: DashboardViewModel,
     onNavigateToHotelDetail: (Int) -> Unit
@@ -164,12 +165,17 @@ fun ExploreTabContent(
 
     var promoInput by remember { mutableStateOf("") }
 
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+    androidx.compose.material3.pulltorefresh.PullToRefreshBox(
+        isRefreshing = isLoading,
+        onRefresh = { viewModel.triggerSearch() },
+        modifier = Modifier.fillMaxSize()
     ) {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
         item {
             Spacer(modifier = Modifier.height(16.dp))
             // Welcome Header
@@ -360,6 +366,7 @@ fun ExploreTabContent(
             Spacer(modifier = Modifier.height(24.dp))
         }
     }
+    }
 }
 
 @Composable
@@ -483,6 +490,7 @@ fun HotelImagePlaceholder(name: String) {
     }
 }
 
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun FavoritesTabContent(
     viewModel: DashboardViewModel,
@@ -490,15 +498,21 @@ fun FavoritesTabContent(
 ) {
     val hotels by viewModel.hotels.collectAsState()
     val favoriteIds by viewModel.favoriteIds.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
 
     val favHotels = hotels.filter { favoriteIds.contains(it.hotel.id) }
 
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+    androidx.compose.material3.pulltorefresh.PullToRefreshBox(
+        isRefreshing = isLoading,
+        onRefresh = { viewModel.fetchFavoriteHotels() },
+        modifier = Modifier.fillMaxSize()
     ) {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
         item {
             Text("Wishlist", color = MoonPrimary, fontSize = 24.sp, fontWeight = FontWeight.Bold)
             Text("Your favorite celestial stays", color = MoonOnSurfaceVariant, fontSize = 14.sp)
@@ -524,18 +538,26 @@ fun FavoritesTabContent(
             }
         }
     }
+    }
 }
 
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun BookingsTabContent(viewModel: DashboardViewModel) {
     val bookings by viewModel.bookings.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
 
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+    androidx.compose.material3.pulltorefresh.PullToRefreshBox(
+        isRefreshing = isLoading,
+        onRefresh = { viewModel.fetchMyBookings() },
+        modifier = Modifier.fillMaxSize()
     ) {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
         item {
             Text("Your Escapes", color = MoonPrimary, fontSize = 24.sp, fontWeight = FontWeight.Bold)
             Text("Verify and monitor your reservations history", color = MoonOnSurfaceVariant, fontSize = 14.sp)
@@ -595,6 +617,7 @@ fun BookingsTabContent(viewModel: DashboardViewModel) {
                 }
             }
         }
+    }
     }
 }
 

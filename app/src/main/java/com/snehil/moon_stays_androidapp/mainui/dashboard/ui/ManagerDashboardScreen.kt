@@ -338,6 +338,7 @@ fun ManagerDashboardScreen(
     }
 }
 
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun ManagerHotelsTab(
     viewModel: DashboardViewModel,
@@ -345,6 +346,7 @@ fun ManagerHotelsTab(
 ) {
     val hotels by viewModel.hotelsList.collectAsState()
     val roomsByHotel by viewModel.roomsByHotel.collectAsState()
+    val isRefreshing by viewModel.isLoading.collectAsState()
 
     var showAddHotelDialog by remember { mutableStateOf(false) }
     var showAddRoomDialogForHotelId by remember { mutableStateOf<Int?>(null) }
@@ -373,12 +375,17 @@ fun ManagerHotelsTab(
     var surgeStartDate by remember { mutableStateOf("") }
     var surgeEndDate by remember { mutableStateOf("") }
 
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+    androidx.compose.material3.pulltorefresh.PullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = { viewModel.loadManagerData() },
+        modifier = Modifier.fillMaxSize()
     ) {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
         item {
             Spacer(modifier = Modifier.height(16.dp))
             Row(
@@ -638,6 +645,7 @@ fun ManagerHotelsTab(
             Spacer(modifier = Modifier.height(24.dp))
         }
     }
+    }
 
     // 1. Add / Edit Hotel Dialog
     if (showAddHotelDialog || editingHotel != null) {
@@ -827,23 +835,30 @@ fun ManagerHotelsTab(
     }
 }
 
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun ManagerPromosTab(
     viewModel: DashboardViewModel,
     onDeleteRequest: (DeleteConfirmState) -> Unit
 ) {
     val promos by viewModel.promoCodes.collectAsState()
+    val isRefreshing by viewModel.isLoading.collectAsState()
 
     var showAddPromoDialog by remember { mutableStateOf(false) }
     var promoCodeInput by remember { mutableStateOf("") }
     var promoDiscountInput by remember { mutableStateOf("") }
 
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+    androidx.compose.material3.pulltorefresh.PullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = { viewModel.fetchManagerPromos() },
+        modifier = Modifier.fillMaxSize()
     ) {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
         item {
             Spacer(modifier = Modifier.height(16.dp))
             Row(
@@ -918,6 +933,7 @@ fun ManagerPromosTab(
         item {
             Spacer(modifier = Modifier.height(24.dp))
         }
+    }
     }
 
     if (showAddPromoDialog) {
