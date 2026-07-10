@@ -1,5 +1,6 @@
 package com.moonlight.project.airBnbApp.service;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -12,9 +13,10 @@ import java.util.UUID;
 @Service
 public class FileSystemStorageService implements StorageService {
 
-    private final Path rootLocation = Paths.get("uploads");
+    private final Path rootLocation;
 
-    public FileSystemStorageService() {
+    public FileSystemStorageService(@Value("${app.upload.dir:uploads}") String uploadDir) {
+        this.rootLocation = Paths.get(uploadDir).toAbsolutePath().normalize();
         try {
             Files.createDirectories(rootLocation);
         } catch (IOException e) {

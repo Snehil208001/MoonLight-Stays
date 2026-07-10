@@ -4,7 +4,6 @@ import { useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Navbar } from "@/components/Navbar";
-import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { api, type TripPlanResponse } from "@/lib/api";
 import { showApiError } from "@/lib/toast";
 import { ArrowLeft, Sparkles, MapPin, Utensils, Lightbulb } from "lucide-react";
@@ -65,9 +64,8 @@ export default function TripPlannerPage() {
   };
 
   return (
-    <ProtectedRoute>
-      <main className="min-h-screen mesh-gradient-bg">
-        <Navbar />
+    <main className="min-h-screen mesh-gradient-bg">
+      <Navbar />
         <div className="max-w-4xl mx-auto px-4 py-8">
           <Link
             href={ROUTES.HOME}
@@ -243,6 +241,5 @@ export default function TripPlannerPage() {
           )}
         </div>
       </main>
-    </ProtectedRoute>
   );
 }
