@@ -5,6 +5,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -80,7 +82,18 @@ public class WebSecurityConfig {
                         .requestMatchers("/images/**").permitAll() // Allow serving images publically
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .anyRequest().permitAll()
-                );
+                )
+                // Return 401 (not the default 403) when the request is unauthenticated —
+                // i.e. no/expired/invalid token — so clients know to refresh the access
+                // token and retry. Authenticated-but-wrong-role still yields 403 via the
+                // default access denied handler.
+                .exceptionHandling(ex -> ex.authenticationEntryPoint(
+                        (request, response, authException) -> {
+                            response.setStatus(HttpStatus.UNAUTHORIZED.value());
+                            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+                            response.getWriter().write("{\"error\":{\"status\":\"UNAUTHORIZED\",\"message\":\"Authentication required or token expired\"}}");
+                        }
+                ));
 
         return httpSecurity.build();
     }
