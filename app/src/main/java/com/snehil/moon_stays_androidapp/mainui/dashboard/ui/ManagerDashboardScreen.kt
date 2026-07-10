@@ -22,6 +22,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.snehil.moon_stays_androidapp.core.util.formatPrice
 import com.snehil.moon_stays_androidapp.mainui.dashboard.viewmodel.DashboardViewModel
 import com.snehil.moon_stays_androidapp.mainui.dashboard.viewmodel.Hotel
 import com.snehil.moon_stays_androidapp.mainui.hoteldetail.viewmodel.RoomDto
@@ -581,7 +582,7 @@ fun ManagerHotelsTab(
                                 ) {
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(room.types, color = MoonPrimary, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                                        Text("₮${room.basePrice.toInt()} | Cap: ${room.capacity} | Count: ${room.totalCount ?: 1}", color = MoonOnSurfaceVariant, fontSize = 12.sp)
+                                        Text("${formatPrice(room.basePrice)} | Cap: ${room.capacity} | Count: ${room.totalCount ?: 1}", color = MoonOnSurfaceVariant, fontSize = 12.sp)
                                     }
                                     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                                         IconButton(

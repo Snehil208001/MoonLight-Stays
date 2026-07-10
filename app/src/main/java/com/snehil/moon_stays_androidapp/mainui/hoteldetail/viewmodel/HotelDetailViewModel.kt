@@ -28,7 +28,7 @@ data class ReviewDto(
     val rating: Int,
     val content: String,
     val hotelId: Int,
-    val userName: String = "Voyager"
+    val userId: Int = 0
 )
 
 data class BookingRequest(
@@ -44,7 +44,7 @@ data class BookingRequest(
 fun com.snehil.moon_stays_androidapp.data.remote.dto.RoomDto.toDomain(): RoomDto {
     return RoomDto(
         id = this.id?.toInt() ?: 0,
-        types = this.types ?: "Unknown Room Type",
+        types = this.types?.trim()?.ifBlank { "Unknown Room Type" } ?: "Unknown Room Type",
         basePrice = this.basePrice?.toDouble() ?: 0.0,
         capacity = this.capacity ?: 1,
         amenities = this.amenities ?: emptyList(),
@@ -59,7 +59,7 @@ fun com.snehil.moon_stays_androidapp.data.remote.dto.ReviewDto.toDomain(): Revie
         rating = this.rating,
         content = this.content,
         hotelId = this.hotelId?.toInt() ?: 0,
-        userName = "Voyager"
+        userId = this.userId?.toInt() ?: 0
     )
 }
 
@@ -211,6 +211,7 @@ class HotelDetailViewModel @Inject constructor(
         roomsCount: Int,
         totalAmount: Double,
         guests: List<com.snehil.moon_stays_androidapp.data.remote.dto.GuestDto>,
+        promoCode: String? = null,
         onSuccess: (String) -> Unit
     ) {
         launchSafe {
@@ -219,7 +220,10 @@ class HotelDetailViewModel @Inject constructor(
                 roomId = roomId.toLong(),
                 checkInDate = checkInDate,
                 checkOutDate = checkOutDate,
-                roomsCount = roomsCount
+                roomsCount = roomsCount,
+                // Sent to the backend so the discount is applied to the real Stripe charge,
+                // matching the web client (which passes promoCode to /bookings/init).
+                promoCode = promoCode?.trim()?.ifBlank { null }
             )
             bookRoomUseCase(request, guests).collect { result ->
                 when (result) {

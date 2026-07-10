@@ -94,6 +94,12 @@ All shared components must follow these recipes on both platforms.
   spinner. Skeletons: `glass.surface` blocks at content radius pulsing 0.4→0.7 opacity, 1.5s loop.
 - **Success / Confirmation screen** — centered success check in `semantic.success` with glow,
   Display type, booking summary card, primary CTA.
+- **AI Trip Planner** — entered from the primary navigation (`accent.primary` sparkle icon).
+  Input form uses standard Text Fields + Chips (interests multi-select, budget single-select).
+  Generate action is a Primary Button. Results render as glass Cards (radius 16): a destination
+  summary card, one card per day (day title in cyan, each activity prefixed by a coral
+  `accent.secondary` time-of-day pill), and a travel-tips card. Loading uses the inline cyan
+  spinner; errors use the Error state recipe.
 
 ## 6. Navigation Hierarchy (both platforms, same names & order)
 
@@ -106,13 +112,14 @@ Splash → Onboarding → Authentication (Login/Sign Up)
   → Payment (Stripe)
   → Confirmation
   → Profile → Settings
+  → Trip Planner (AI, reachable from primary nav)
 Managers additionally: Admin Dashboard (hotels, rooms, surge, promo codes)
 ```
 
 Web routes: `/` (splash/onboarding/home), `/login`, `/hotels/[id]`, `/bookings`, `/payments/*`,
-`/favorites`, `/profile`, `/admin`. Android screens (`mainui/`): splashscreen, onboarding,
-loginscreen, signupscreen, dashboard (guest + manager), hoteldetail — new Android screens must
-reuse the web flow's naming and ordering.
+`/favorites`, `/trip-planner`, `/profile`, `/admin`. Android screens (`mainui/`): splashscreen,
+onboarding, loginscreen, signupscreen, dashboard (guest + manager), hoteldetail, tripplanner —
+new Android screens must reuse the web flow's naming and ordering.
 
 ## 7. Motion
 

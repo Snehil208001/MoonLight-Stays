@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AppLogo } from "./AppLogo";
-import { LogIn, LogOut, Calendar, User, Building2, Heart } from "lucide-react";
+import { LogIn, LogOut, Calendar, User, Building2, Heart, Sparkles } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { ROUTES } from "@/lib/constants";
 
@@ -55,6 +55,17 @@ export function Navbar() {
                 >
                   <Heart className="w-4 h-4" />
                   Favorites
+                </Link>
+                <Link
+                  href={ROUTES.TRIP_PLANNER}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-all ${
+                    pathname === ROUTES.TRIP_PLANNER
+                      ? "bg-[#00FFFF]/20 text-[#00FFFF]"
+                      : "hover:bg-white/10 text-white"
+                  }`}
+                >
+                  <Sparkles className="w-4 h-4" />
+                  Trip Planner
                 </Link>
                 {isHotelManager && (
                   <Link

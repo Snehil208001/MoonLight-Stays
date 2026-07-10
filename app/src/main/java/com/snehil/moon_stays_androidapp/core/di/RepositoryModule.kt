@@ -36,6 +36,12 @@ abstract class RepositoryModule {
         adminRepositoryImpl: AdminRepositoryImpl
     ): AdminRepository
 
+    @Binds
+    @Singleton
+    abstract fun bindTripPlannerRepository(
+        tripPlannerRepositoryImpl: TripPlannerRepositoryImpl
+    ): TripPlannerRepository
+
     // Decoupled Multi-Backend Repositories
     @Binds
     @Singleton

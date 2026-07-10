@@ -35,14 +35,15 @@ class SplashScreenViewModel @Inject constructor(
         }
     }
 
-    // Mirrors the web app's refreshAuth on load: a stored token is only trusted
-    // if the backend still accepts it; otherwise the session is cleared.
+    // Refresh cached profile info on launch. We deliberately DO NOT clear the session
+    // when the profile call fails: a genuinely expired/invalid token is already handled
+    // by AuthInterceptor (which clears the token after a failed refresh), whereas a
+    // transient network error or Azure cold-start must NOT sign the user out — otherwise
+    // they'd have to log in again every time the backend is briefly slow.
     private suspend fun validateSession() {
         if (authRepository.getToken().isNullOrEmpty()) return
         val profile = authRepository.fetchProfile()
-        if (profile == null) {
-            authRepository.clearSession()
-        } else {
+        if (profile != null) {
             authRepository.saveUserName(profile.name)
             authRepository.saveIsManager(profile.roles.contains("HOTEL_MANAGER"))
         }

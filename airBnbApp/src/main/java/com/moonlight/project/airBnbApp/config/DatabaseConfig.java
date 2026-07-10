@@ -16,6 +16,21 @@ public class DatabaseConfig {
     public DataSource dataSource() {
         String databaseUrl = System.getenv("DATABASE_URL");
         if (databaseUrl == null || databaseUrl.trim().isEmpty()) {
+            // Check for SPRING_DATASOURCE_URL (common on Azure App Service)
+            String springDsUrl = System.getenv("SPRING_DATASOURCE_URL");
+            if (springDsUrl != null && !springDsUrl.trim().isEmpty()) {
+                String username = System.getenv("SPRING_DATASOURCE_USERNAME");
+                String password = System.getenv("SPRING_DATASOURCE_PASSWORD");
+
+                HikariConfig hikariConfig = new HikariConfig();
+                hikariConfig.setJdbcUrl(springDsUrl);
+                hikariConfig.setUsername(username);
+                hikariConfig.setPassword(password);
+                hikariConfig.setDriverClassName("org.postgresql.Driver");
+
+                return new HikariDataSource(hikariConfig);
+            }
+
             // Fallback to individual DB variables (common on Azure App Service)
             String host = System.getenv("DB_HOST");
             if (host == null) host = System.getenv("RDS_HOSTNAME");
@@ -56,7 +71,7 @@ public class DatabaseConfig {
                 return new HikariDataSource(hikariConfig);
             }
 
-            throw new IllegalStateException("DATABASE_URL environment variable is missing, and no fallback DB_HOST/RDS_HOSTNAME variable was found.");
+            throw new IllegalStateException("DATABASE_URL / SPRING_DATASOURCE_URL environment variable is missing, and no fallback DB_HOST/RDS_HOSTNAME variable was found.");
         }
 
         try {

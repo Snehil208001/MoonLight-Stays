@@ -18,6 +18,8 @@ import com.snehil.moon_stays_androidapp.mainui.dashboard.ui.ManagerDashboardScre
 import com.snehil.moon_stays_androidapp.mainui.dashboard.viewmodel.DashboardViewModel
 import com.snehil.moon_stays_androidapp.mainui.hoteldetail.ui.HotelDetailScreen
 import com.snehil.moon_stays_androidapp.mainui.hoteldetail.viewmodel.HotelDetailViewModel
+import com.snehil.moon_stays_androidapp.mainui.tripplanner.ui.TripPlannerScreen
+import com.snehil.moon_stays_androidapp.mainui.tripplanner.viewmodel.TripPlannerViewModel
 
 @Composable
 fun NavGraph(
@@ -28,6 +30,7 @@ fun NavGraph(
     signUpViewModel: SignUpScreenViewModel,
     dashboardViewModel: DashboardViewModel,
     hotelDetailViewModel: HotelDetailViewModel,
+    tripPlannerViewModel: TripPlannerViewModel,
     innerPadding: PaddingValues,
     modifier: Modifier = Modifier
 ) {
@@ -93,6 +96,7 @@ fun NavGraph(
                 DashboardScreen(
                     viewModel = dashboardViewModel,
                     onNavigateToHotelDetail = { onNavigate(Screen.HotelDetail(it)) },
+                    onNavigateToTripPlanner = { onNavigate(Screen.TripPlanner()) },
                     onLogout = {
                         dashboardViewModel.logout()
                         onNavigate(Screen.Login())
@@ -106,6 +110,13 @@ fun NavGraph(
                 hotelId = currentScreen.hotelId,
                 dashboardViewModel = dashboardViewModel,
                 detailViewModel = hotelDetailViewModel,
+                onNavigateBack = { onNavigate(Screen.Dashboard()) },
+                modifier = modifier.padding(innerPadding)
+            )
+        }
+        is Screen.TripPlanner -> {
+            TripPlannerScreen(
+                viewModel = tripPlannerViewModel,
                 onNavigateBack = { onNavigate(Screen.Dashboard()) },
                 modifier = modifier.padding(innerPadding)
             )

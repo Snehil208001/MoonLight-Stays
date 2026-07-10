@@ -124,6 +124,12 @@ object NetworkModule {
         return retrofit.create(AdminApiService::class.java)
     }
 
+    @Provides
+    @Singleton
+    fun provideAiApiService(@LegacyRetrofit retrofit: Retrofit): AiApiService {
+        return retrofit.create(AiApiService::class.java)
+    }
+
     // Unified Legacy and Modern API interfaces definitions
     @Provides
     @Singleton

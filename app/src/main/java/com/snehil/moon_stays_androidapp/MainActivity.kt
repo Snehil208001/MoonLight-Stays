@@ -19,6 +19,7 @@ import com.snehil.moon_stays_androidapp.mainui.signupscreen.viewmodel.SignUpScre
 import com.snehil.moon_stays_androidapp.mainui.splashscreen.viewmodel.SplashScreenViewModel
 import com.snehil.moon_stays_androidapp.mainui.dashboard.viewmodel.DashboardViewModel
 import com.snehil.moon_stays_androidapp.mainui.hoteldetail.viewmodel.HotelDetailViewModel
+import com.snehil.moon_stays_androidapp.mainui.tripplanner.viewmodel.TripPlannerViewModel
 import com.snehil.moon_stays_androidapp.ui.theme.MoonStaysAndroidAppTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -29,6 +30,7 @@ class MainActivity : ComponentActivity() {
     private val signUpViewModel: SignUpScreenViewModel by viewModels()
     private val dashboardViewModel: DashboardViewModel by viewModels()
     private val hotelDetailViewModel: HotelDetailViewModel by viewModels()
+    private val tripPlannerViewModel: TripPlannerViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -59,6 +61,7 @@ class MainActivity : ComponentActivity() {
                         signUpViewModel = signUpViewModel,
                         dashboardViewModel = dashboardViewModel,
                         hotelDetailViewModel = hotelDetailViewModel,
+                        tripPlannerViewModel = tripPlannerViewModel,
                         innerPadding = innerPadding
                     )
                 }

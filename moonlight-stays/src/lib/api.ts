@@ -62,6 +62,36 @@ export interface HotelInfoDto {
   rooms: RoomDto[];
 }
 
+export interface TripPlanRequest {
+  city: string;
+  checkInDate?: string;
+  checkOutDate?: string;
+  numberOfGuests?: number;
+  interests?: string[];
+  budgetLevel?: string;
+  hotelId?: number;
+}
+
+export interface TripActivity {
+  timeOfDay: string;
+  title: string;
+  description: string;
+}
+
+export interface TripDayPlan {
+  day: number;
+  title: string;
+  activities: TripActivity[];
+  mealSuggestion?: string;
+}
+
+export interface TripPlanResponse {
+  destination: string;
+  summary: string;
+  days: TripDayPlan[];
+  tips?: string[];
+}
+
 export interface BookingRequest {
   hotelId: number;
   roomId: number;
@@ -466,6 +496,13 @@ export const api = {
   async getHotelAverageRating(hotelId: number): Promise<number> {
     const val = await fetchApi<number>(`/hotels/${hotelId}/reviews/average`);
     return typeof val === "number" ? val : 0;
+  },
+
+  async generateTripPlan(req: TripPlanRequest): Promise<TripPlanResponse> {
+    return fetchApi<TripPlanResponse>("/ai/trip-plan", {
+      method: "POST",
+      body: JSON.stringify(req),
+    });
   },
 
   async getFavoriteHotels(): Promise<Hotel[]> {

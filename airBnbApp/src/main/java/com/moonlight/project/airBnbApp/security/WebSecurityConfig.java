@@ -73,6 +73,7 @@ public class WebSecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/admin/**").hasRole("HOTEL_MANAGER")
                         .requestMatchers("/bookings/**").authenticated()
+                        .requestMatchers("/ai/**").authenticated()
                         .requestMatchers(HttpMethod.POST, "/hotels/*/reviews").authenticated()
                         .requestMatchers("/users/**").authenticated()
                         .requestMatchers("/auth/**").permitAll()

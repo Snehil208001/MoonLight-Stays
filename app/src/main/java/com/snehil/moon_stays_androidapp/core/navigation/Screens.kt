@@ -7,4 +7,5 @@ sealed class Screen(val route: String) {
     class Onboarding : Screen("onboarding")
     class Dashboard : Screen("dashboard")
     class HotelDetail(val hotelId: Int) : Screen("hotel_detail")
+    class TripPlanner : Screen("trip_planner")
 }

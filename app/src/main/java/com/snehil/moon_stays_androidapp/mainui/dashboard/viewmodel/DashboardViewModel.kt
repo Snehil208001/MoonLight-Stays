@@ -11,8 +11,11 @@ import com.snehil.moon_stays_androidapp.data.remote.dto.SurgeUpdateDto
 import com.snehil.moon_stays_androidapp.data.remote.dto.PromoCodeDto as RemotePromoCodeDto
 import com.snehil.moon_stays_androidapp.domain.repository.AuthRepository
 import com.snehil.moon_stays_androidapp.domain.repository.AdminRepository
+import com.snehil.moon_stays_androidapp.domain.usecase.CancelBookingUseCase
+import com.snehil.moon_stays_androidapp.domain.usecase.GetActivePromoCodesUseCase
 import com.snehil.moon_stays_androidapp.domain.usecase.GetMyBookingsUseCase
 import com.snehil.moon_stays_androidapp.domain.usecase.SearchHotelsUseCase
+import com.snehil.moon_stays_androidapp.domain.usecase.ValidatePromoCodeUseCase
 import com.snehil.moon_stays_androidapp.mainui.hoteldetail.viewmodel.RoomDto
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -50,6 +53,7 @@ data class BookingDto(
     val id: Int,
     val hotelId: Int,
     val hotelName: String,
+    val hotelCity: String = "",
     val roomType: String,
     val checkInDate: String,
     val checkOutDate: String,
@@ -127,6 +131,9 @@ fun RoomDto.toRemote(): com.snehil.moon_stays_androidapp.data.remote.dto.RoomDto
 class DashboardViewModel @Inject constructor(
     private val searchHotelsUseCase: SearchHotelsUseCase,
     private val getMyBookingsUseCase: GetMyBookingsUseCase,
+    private val cancelBookingUseCase: CancelBookingUseCase,
+    private val validatePromoCodeUseCase: ValidatePromoCodeUseCase,
+    private val getActivePromoCodesUseCase: GetActivePromoCodesUseCase,
     private val authRepository: AuthRepository,
     private val adminRepository: AdminRepository
 ) : BaseViewModel() {
@@ -151,6 +158,19 @@ class DashboardViewModel @Inject constructor(
     private val _selectedRoomType = MutableStateFlow("All")
     val selectedRoomType: StateFlow<String> = _selectedRoomType.asStateFlow()
 
+    // Advanced search filters (mirrors the web "More filters" panel). Sent to the backend.
+    private val _minPrice = MutableStateFlow<Int?>(null)
+    val minPrice: StateFlow<Int?> = _minPrice.asStateFlow()
+
+    private val _maxPrice = MutableStateFlow<Int?>(null)
+    val maxPrice: StateFlow<Int?> = _maxPrice.asStateFlow()
+
+    private val _roomTypeFilter = MutableStateFlow("")
+    val roomTypeFilter: StateFlow<String> = _roomTypeFilter.asStateFlow()
+
+    private val _amenityFilter = MutableStateFlow("")
+    val amenityFilter: StateFlow<String> = _amenityFilter.asStateFlow()
+
     // 3. Promo Code States
     private val _promoCode = MutableStateFlow("")
     val promoCode: StateFlow<String> = _promoCode.asStateFlow()
@@ -158,21 +178,32 @@ class DashboardViewModel @Inject constructor(
     private val _promoDiscount = MutableStateFlow<Int?>(null)
     val promoDiscount: StateFlow<Int?> = _promoDiscount.asStateFlow()
 
-    private val _promoCodes = MutableStateFlow(
-        listOf(
-            PromoCodeDto(1, "LUNAR25", 25, true),
-            PromoCodeDto(2, "STELLAR10", 10, true)
-        )
-    )
+    private val _promoError = MutableStateFlow<String?>(null)
+    val promoError: StateFlow<String?> = _promoError.asStateFlow()
+
+    private val _isPromoLoading = MutableStateFlow(false)
+    val isPromoLoading: StateFlow<Boolean> = _isPromoLoading.asStateFlow()
+
+    // Live from the backend: active promos (public list) for users, all promos for managers
+    private val _promoCodes = MutableStateFlow<List<PromoCodeDto>>(emptyList())
     val promoCodes: StateFlow<List<PromoCodeDto>> = _promoCodes.asStateFlow()
 
     // 4. Favorites States
     private val _favoriteIds = MutableStateFlow<Set<Int>>(setOf())
     val favoriteIds: StateFlow<Set<Int>> = _favoriteIds.asStateFlow()
 
+    // Full favorite hotels fetched from the backend (independent of the current search),
+    // matching the web Favorites page.
+    private val _favoriteHotels = MutableStateFlow<List<Hotel>>(emptyList())
+    val favoriteHotels: StateFlow<List<Hotel>> = _favoriteHotels.asStateFlow()
+
     // 5. Bookings History States
     private val _bookings = MutableStateFlow<List<BookingDto>>(emptyList())
     val bookings: StateFlow<List<BookingDto>> = _bookings.asStateFlow()
+
+    // Booking status filter, mirroring the web Bookings page dropdown.
+    private val _bookingStatusFilter = MutableStateFlow("ALL")
+    val bookingStatusFilter: StateFlow<String> = _bookingStatusFilter.asStateFlow()
 
     // 6. Mutable Hotel & Room Sources for management
     private val _hotelsList = MutableStateFlow<List<Hotel>>(emptyList())
@@ -190,6 +221,7 @@ class DashboardViewModel @Inject constructor(
         fetchMyBookings()
         fetchFavoriteHotels()
         fetchUserProfile()
+        fetchActivePromoCodes()
     }
 
     // Combined search results (filtering _searchResults dynamically by amenity filter tabs)
@@ -211,10 +243,15 @@ class DashboardViewModel @Inject constructor(
     private val _userEmail = MutableStateFlow(authRepository.getUserEmail() ?: "voyager@celestial.com")
     val userEmail: StateFlow<String> = _userEmail.asStateFlow()
 
+    // Current user's id, used e.g. to tell whether they already reviewed a hotel.
+    private val _userId = MutableStateFlow(0)
+    val userId: StateFlow<Int> = _userId.asStateFlow()
+
     fun fetchUserProfile() {
         launchSafe {
             val user = authRepository.fetchProfile()
             user?.let {
+                _userId.value = it.id.toInt()
                 it.name?.let { name ->
                     authRepository.saveUserName(name)
                     _userName.value = name
@@ -263,6 +300,15 @@ class DashboardViewModel @Inject constructor(
         _selectedRoomType.value = roomType
     }
 
+    /** Apply the advanced filters and re-run the search (mirrors web "More filters" + Search). */
+    fun applyFilters(minPrice: Int?, maxPrice: Int?, roomType: String, amenity: String) {
+        _minPrice.value = minPrice
+        _maxPrice.value = maxPrice
+        _roomTypeFilter.value = roomType.trim()
+        _amenityFilter.value = amenity.trim()
+        triggerSearch()
+    }
+
     fun triggerSearch() {
         launchSafe {
             val req = HotelSearchRequest(
@@ -270,6 +316,10 @@ class DashboardViewModel @Inject constructor(
                 checkInDate = _checkInDate.value,
                 endDate = _checkOutDate.value,
                 roomsCount = _roomsCount.value,
+                minPrice = _minPrice.value?.let { BigDecimal.valueOf(it.toLong()) },
+                maxPrice = _maxPrice.value?.let { BigDecimal.valueOf(it.toLong()) },
+                roomType = _roomTypeFilter.value.ifBlank { null },
+                amenity = _amenityFilter.value.ifBlank { null },
                 page = 0,
                 size = 50
             )
@@ -294,9 +344,35 @@ class DashboardViewModel @Inject constructor(
         }
     }
 
-    fun fetchMyBookings() {
+    fun setBookingStatusFilter(status: String) {
+        if (_bookingStatusFilter.value == status) return
+        _bookingStatusFilter.value = status
+        fetchMyBookings()
+    }
+
+    fun cancelBooking(bookingId: Int) {
         launchSafe {
-            getMyBookingsUseCase(0, 50, null).collect { result ->
+            cancelBookingUseCase(bookingId.toLong()).collect { result ->
+                when (result) {
+                    is NetworkResult.Loading -> _isLoading.value = true
+                    is NetworkResult.Error -> {
+                        _isLoading.value = false
+                        _errorMessage.value = result.message
+                    }
+                    is NetworkResult.Success -> {
+                        _isLoading.value = false
+                        fetchMyBookings()
+                    }
+                }
+            }
+        }
+    }
+
+    fun fetchMyBookings() {
+        val statusFilter = _bookingStatusFilter.value
+        val statusList = if (statusFilter == "ALL") null else listOf(statusFilter)
+        launchSafe {
+            getMyBookingsUseCase(0, 50, statusList).collect { result ->
                 when (result) {
                     is NetworkResult.Loading -> {}
                     is NetworkResult.Error -> {
@@ -308,6 +384,7 @@ class DashboardViewModel @Inject constructor(
                                  id = dto.id.toInt(),
                                  hotelId = dto.hotel.id?.toInt() ?: 0,
                                  hotelName = dto.hotel.name ?: "Unknown Hotel",
+                                 hotelCity = dto.hotel.city ?: "",
                                  roomType = dto.room.types ?: "Unknown Room Type",
                                  checkInDate = dto.checkInDate,
                                  checkOutDate = dto.checkOutDate,
@@ -418,13 +495,66 @@ class DashboardViewModel @Inject constructor(
     }
 
     // 7. Promo Validation & Management Actions
+
+    /** Loads the public list of active promo codes (available to every user, not just managers). */
+    fun fetchActivePromoCodes() {
+        launchSafe {
+            getActivePromoCodesUseCase().collect { result ->
+                when (result) {
+                    is NetworkResult.Success -> {
+                        _promoCodes.value = result.data.map { it.toDomain() }
+                    }
+                    is NetworkResult.Error -> {
+                        Log.e("DashboardViewModel", "fetchActivePromoCodes - Error: ${result.message}")
+                    }
+                    is NetworkResult.Loading -> {}
+                }
+            }
+        }
+    }
+
+    /**
+     * Validates a promo code against the backend (`/promocodes/validate`) so that any code a
+     * manager creates works instantly for users. Result is exposed via [promoDiscount],
+     * [promoError] and [isPromoLoading].
+     */
     fun applyPromoCode(code: String) {
-        _promoCode.value = code.uppercase()
-        val match = _promoCodes.value.find { it.code.equals(code, ignoreCase = true) && it.active }
-        if (match != null) {
-            _promoDiscount.value = match.discountPercentage
-        } else {
+        val trimmed = code.trim()
+        _promoCode.value = trimmed.uppercase()
+
+        // Empty input clears any previously applied promo.
+        if (trimmed.isBlank()) {
             _promoDiscount.value = null
+            _promoError.value = null
+            _isPromoLoading.value = false
+            return
+        }
+
+        launchSafe {
+            validatePromoCodeUseCase(trimmed).collect { result ->
+                when (result) {
+                    is NetworkResult.Loading -> {
+                        _isPromoLoading.value = true
+                        _promoError.value = null
+                    }
+                    is NetworkResult.Error -> {
+                        _isPromoLoading.value = false
+                        _promoDiscount.value = null
+                        _promoError.value = "Couldn't validate promo code. Please try again."
+                    }
+                    is NetworkResult.Success -> {
+                        _isPromoLoading.value = false
+                        val validation = result.data
+                        if (validation.valid && validation.discountPercentage != null) {
+                            _promoDiscount.value = validation.discountPercentage
+                            _promoError.value = null
+                        } else {
+                            _promoDiscount.value = null
+                            _promoError.value = "Invalid or expired promo code"
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -767,6 +897,7 @@ class DashboardViewModel @Inject constructor(
                         val ids = result.data.mapNotNull { it.id?.toInt() }.toSet()
                         Log.d("DashboardViewModel", "fetchFavoriteHotels - Loaded favorites IDs: $ids")
                         _favoriteIds.value = ids
+                        _favoriteHotels.value = result.data.map { it.toDomain() }
                     }
                     is NetworkResult.Error -> {
                         Log.e("DashboardViewModel", "fetchFavoriteHotels - Error loading favorites: ${result.message}")
@@ -794,8 +925,15 @@ class DashboardViewModel @Inject constructor(
                         Log.d("DashboardViewModel", "toggleFavorite - Success!")
                         if (isFav) {
                             _favoriteIds.value = currentFavs - hotelId
+                            _favoriteHotels.value = _favoriteHotels.value.filterNot { it.id == hotelId }
                         } else {
                             _favoriteIds.value = currentFavs + hotelId
+                            // Pull the full hotel object so it shows in the Favorites tab immediately.
+                            _searchResults.value.find { it.hotel.id == hotelId }?.hotel?.let { added ->
+                                if (_favoriteHotels.value.none { it.id == hotelId }) {
+                                    _favoriteHotels.value = _favoriteHotels.value + added
+                                }
+                            }
                         }
                     }
                     is NetworkResult.Error -> {
@@ -838,5 +976,7 @@ class DashboardViewModel @Inject constructor(
 
     fun getHotelById(hotelId: Int): Hotel? {
         return _searchResults.value.find { it.hotel.id == hotelId }?.hotel
+            ?: _favoriteHotels.value.find { it.id == hotelId }
+            ?: _hotelsList.value.find { it.id == hotelId }
     }
 }

@@ -23,7 +23,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.snehil.moon_stays_androidapp.mainui.dashboard.viewmodel.BookingDto
+import com.snehil.moon_stays_androidapp.core.util.formatPrice
 import com.snehil.moon_stays_androidapp.mainui.dashboard.viewmodel.DashboardViewModel
 import com.snehil.moon_stays_androidapp.mainui.dashboard.ui.HotelImagePlaceholder
 import com.snehil.moon_stays_androidapp.mainui.hoteldetail.viewmodel.HotelDetailViewModel
@@ -99,8 +99,10 @@ fun HotelDetailScreen(
     var guestAgeInput by remember { mutableStateOf("") }
 
     var promoCodeInput by remember { mutableStateOf("") }
-    var promoErrorText by remember { mutableStateOf<String?>(null) }
     val promoDiscountState by dashboardViewModel.promoDiscount.collectAsState()
+    val promoErrorText by dashboardViewModel.promoError.collectAsState()
+    val isPromoLoading by dashboardViewModel.isPromoLoading.collectAsState()
+    val appliedPromoCode by dashboardViewModel.promoCode.collectAsState()
 
     var stripeCheckoutUrl by remember { mutableStateOf<String?>(null) }
     var showSuccessDialog by remember { mutableStateOf(false) }
@@ -115,7 +117,6 @@ fun HotelDetailScreen(
             guestGenderInput = "MALE"
             guestAgeInput = ""
             promoCodeInput = ""
-            promoErrorText = null
             dashboardViewModel.applyPromoCode("")
         }
     }
@@ -294,18 +295,20 @@ fun HotelDetailScreen(
                             verticalAlignment = Alignment.Top
                         ) {
                             val roomImageUrl = room.photos?.firstOrNull()
-                            if (!roomImageUrl.isNullOrEmpty()) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(80.dp)
-                                        .clip(RoundedCornerShape(8.dp))
-                                ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(80.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                            ) {
+                                if (!roomImageUrl.isNullOrEmpty()) {
                                     coil.compose.AsyncImage(
                                         model = formatImageUrl(roomImageUrl),
                                         contentDescription = room.types,
                                         modifier = Modifier.fillMaxSize(),
                                         contentScale = androidx.compose.ui.layout.ContentScale.Crop
                                     )
+                                } else {
+                                    HotelImagePlaceholder(name = room.types)
                                 }
                             }
                             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -343,7 +346,7 @@ fun HotelDetailScreen(
                                     Column(horizontalAlignment = Alignment.End) {
                                         if (promoDiscount != null) {
                                             Text(
-                                                text = "₮${baselinePrice.toInt()}",
+                                                text = formatPrice(baselinePrice),
                                                 color = MoonOnSurfaceVariant,
                                                 fontSize = 11.sp,
                                                 style = MaterialTheme.typography.bodySmall.copy(
@@ -351,7 +354,7 @@ fun HotelDetailScreen(
                                                 )
                                             )
                                         }
-                                        Text("₮${roomPrice.toInt()}", color = MoonPrimaryFixedDim, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                                        Text(formatPrice(roomPrice), color = MoonPrimaryFixedDim, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                                         Text("per night", color = MoonOnSurfaceVariant.copy(0.6f), fontSize = 9.sp)
                                     }
                                 }
@@ -371,10 +374,10 @@ fun HotelDetailScreen(
                     val reviewsMap by detailViewModel.reviews.collectAsState()
                     val hotelReviews = reviewsMap[hotelId] ?: emptyList()
                     val bookings by dashboardViewModel.bookings.collectAsState()
-                    val currentUserName by dashboardViewModel.userName.collectAsState()
+                    val currentUserId by dashboardViewModel.userId.collectAsState()
 
                     val hasCompletedStay = bookings.any { b ->
-                        b.hotelId == hotelId && 
+                        b.hotelId == hotelId &&
                         (b.bookingStatus.equals("CONFIRMED", ignoreCase = true) || b.bookingStatus.equals("PAID", ignoreCase = true)) &&
                         try {
                             val checkout = java.time.LocalDate.parse(b.checkOutDate)
@@ -385,8 +388,8 @@ fun HotelDetailScreen(
                         }
                     }
 
-                    val alreadyReviewed = hotelReviews.any { r ->
-                        r.userName.equals(currentUserName, ignoreCase = true)
+                    val alreadyReviewed = currentUserId != 0 && hotelReviews.any { r ->
+                        r.userId == currentUserId
                     }
 
                     val canReview = hasCompletedStay && !alreadyReviewed
@@ -492,21 +495,14 @@ fun HotelDetailScreen(
                                         .border(1.dp, Color(0x0DFFFFFF), RoundedCornerShape(12.dp))
                                 ) {
                                     Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.SpaceBetween,
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Text(review.userName, color = MoonPrimary, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                                            Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                                                (1..5).forEach { star ->
-                                                    Icon(
-                                                        imageVector = if (star <= review.rating) Icons.Default.Star else Icons.Default.StarBorder,
-                                                        contentDescription = null,
-                                                        tint = if (star <= review.rating) Color(0xFFFFB59C) else MoonOnSurfaceVariant,
-                                                        modifier = Modifier.size(14.dp)
-                                                    )
-                                                }
+                                        Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                                            (1..5).forEach { star ->
+                                                Icon(
+                                                    imageVector = if (star <= review.rating) Icons.Default.Star else Icons.Default.StarBorder,
+                                                    contentDescription = null,
+                                                    tint = if (star <= review.rating) Color(0xFFFFB59C) else MoonOnSurfaceVariant,
+                                                    modifier = Modifier.size(14.dp)
+                                                )
                                             }
                                         }
                                         Text(review.content, color = MoonOnSurfaceVariant, fontSize = 12.sp, lineHeight = 16.sp)
@@ -550,7 +546,7 @@ fun HotelDetailScreen(
                         }
                     }
 
-                    val imageUrl = room.photos?.firstOrNull()
+                    val roomPhotos = room.photos?.filter { !it.isNullOrEmpty() } ?: emptyList()
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -558,15 +554,51 @@ fun HotelDetailScreen(
                             .padding(horizontal = 16.dp)
                             .clip(RoundedCornerShape(16.dp))
                     ) {
-                        if (!imageUrl.isNullOrEmpty()) {
+                        if (roomPhotos.isEmpty()) {
+                            HotelImagePlaceholder(name = room.types)
+                        } else if (roomPhotos.size == 1) {
                             coil.compose.AsyncImage(
-                                model = formatImageUrl(imageUrl),
+                                model = formatImageUrl(roomPhotos[0]),
                                 contentDescription = room.types,
                                 modifier = Modifier.fillMaxSize(),
                                 contentScale = androidx.compose.ui.layout.ContentScale.Crop
                             )
                         } else {
-                            HotelImagePlaceholder(name = room.types)
+                            val roomPagerState = androidx.compose.foundation.pager.rememberPagerState(pageCount = { roomPhotos.size })
+                            Box(modifier = Modifier.fillMaxSize()) {
+                                androidx.compose.foundation.pager.HorizontalPager(
+                                    state = roomPagerState,
+                                    modifier = Modifier.fillMaxSize()
+                                ) { page ->
+                                    coil.compose.AsyncImage(
+                                        model = formatImageUrl(roomPhotos[page]),
+                                        contentDescription = "${room.types} - Image ${page + 1}",
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                                    )
+                                }
+                                // Page indicator dots
+                                Row(
+                                    Modifier
+                                        .height(24.dp)
+                                        .fillMaxWidth()
+                                        .align(Alignment.BottomCenter)
+                                        .background(Color(0x40000000)),
+                                    horizontalArrangement = Arrangement.Center,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    repeat(roomPhotos.size) { iteration ->
+                                        val color = if (roomPagerState.currentPage == iteration) MoonPrimaryFixedDim else Color.White.copy(alpha = 0.5f)
+                                        Box(
+                                            modifier = Modifier
+                                                .padding(3.dp)
+                                                .clip(CircleShape)
+                                                .background(color)
+                                                .size(6.dp)
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
 
@@ -620,7 +652,7 @@ fun HotelDetailScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column {
-                            Text("₮${roomPrice.toInt()} / night", color = MoonPrimary, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                            Text("${formatPrice(roomPrice)} / night", color = MoonPrimary, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                         }
                         Button(
                             onClick = {
@@ -743,7 +775,7 @@ fun HotelDetailScreen(
                                     Text(room.types, color = MoonPrimary, fontSize = 14.sp, fontWeight = FontWeight.Bold)
                                     Text("Capacity: ${room.capacity}", color = MoonOnSurfaceVariant, fontSize = 12.sp)
                                 }
-                                Text("₮${displayPrice.toInt()}/n", color = MoonPrimaryFixedDim, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                                Text("${formatPrice(displayPrice)}/n", color = MoonPrimaryFixedDim, fontSize = 14.sp, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -759,10 +791,7 @@ fun HotelDetailScreen(
                     ) {
                         OutlinedTextField(
                             value = promoCodeInput,
-                            onValueChange = {
-                                promoCodeInput = it
-                                promoErrorText = null
-                            },
+                            onValueChange = { promoCodeInput = it },
                             placeholder = { Text("Enter code (e.g. LUNAR25)", color = MoonOnSurfaceVariant.copy(0.4f), fontSize = 12.sp) },
                             modifier = Modifier.weight(1f),
                             singleLine = true,
@@ -774,22 +803,16 @@ fun HotelDetailScreen(
                             )
                         )
                         Button(
-                            onClick = {
-                                if (promoCodeInput.isNotBlank()) {
-                                    dashboardViewModel.applyPromoCode(promoCodeInput.trim())
-                                    if (promoDiscountState == null) {
-                                        promoErrorText = "Invalid or expired promo code"
-                                    } else {
-                                        promoErrorText = null
-                                    }
-                                } else {
-                                    dashboardViewModel.applyPromoCode("")
-                                }
-                            },
+                            onClick = { dashboardViewModel.applyPromoCode(promoCodeInput) },
+                            enabled = promoCodeInput.isNotBlank() && !isPromoLoading,
                             colors = ButtonDefaults.buttonColors(containerColor = MoonPrimaryFixedDim),
                             shape = RoundedCornerShape(8.dp)
                         ) {
-                            Text("Apply", color = Color.Black, fontWeight = FontWeight.Bold)
+                            if (isPromoLoading) {
+                                CircularProgressIndicator(modifier = Modifier.size(18.dp), color = Color.Black, strokeWidth = 2.dp)
+                            } else {
+                                Text("Apply", color = Color.Black, fontWeight = FontWeight.Bold)
+                            }
                         }
                     }
 
@@ -815,7 +838,7 @@ fun HotelDetailScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text("Total Amount:", color = MoonPrimary, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                            Text("₮${totalToPay.toInt()}", color = MoonPrimaryFixedDim, fontSize = 24.sp, fontWeight = FontWeight.ExtraBold)
+                            Text(formatPrice(totalToPay), color = MoonPrimaryFixedDim, fontSize = 24.sp, fontWeight = FontWeight.ExtraBold)
                         }
                     }
 
@@ -1022,7 +1045,7 @@ fun HotelDetailScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text("Total:", color = MoonPrimary, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                            Text("₮${totalToPay.toInt()}", color = MoonPrimaryFixedDim, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold)
+                            Text(formatPrice(totalToPay), color = MoonPrimaryFixedDim, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold)
                         }
                     }
 
@@ -1056,6 +1079,7 @@ fun HotelDetailScreen(
                                         roomsCount = roomsCount,
                                         totalAmount = totalToPay,
                                         guests = guestsList.toList(),
+                                        promoCode = if (promoDiscountState != null) appliedPromoCode else null,
                                         onSuccess = { sessionUrl ->
                                             stripeCheckoutUrl = sessionUrl
                                             showBookingDialog = false
@@ -1106,28 +1130,10 @@ fun HotelDetailScreen(
                                         if (it.contains("/payments/success")) {
                                             stripeCheckoutUrl = null
                                             showSuccessDialog = true
-                                            
-                                            // Add booking successfully to dashboard list
-                                            selectedBookingRoom?.let { room ->
-                                                val priceInfo = roomPrices.find { it.roomId == room.id }
-                                                val baselineTotal = priceInfo?.totalForStay ?: (room.basePrice * roomsCount * nights.toDouble())
-                                                val discountedTotal = promoDiscountState?.let { discount ->
-                                                    baselineTotal * (1.0 - discount / 100.0)
-                                                } ?: baselineTotal
 
-                                                dashboardViewModel.addBooking(
-                                                    BookingDto(
-                                                        id = (100..999).random(),
-                                                        hotelId = hotelId,
-                                                        hotelName = hotel?.name ?: "Celestial Stay",
-                                                        roomType = room.types,
-                                                        checkInDate = checkInDate,
-                                                        checkOutDate = checkOutDate,
-                                                        totalAmount = discountedTotal,
-                                                        roomsCount = roomsCount
-                                                    )
-                                                )
-                                            }
+                                            // Pull the real, server-confirmed booking instead of
+                                            // fabricating a local one.
+                                            dashboardViewModel.fetchMyBookings()
                                             return true
                                         } else if (it.contains("/payments/failure") || it.contains("/payments/cancel")) {
                                             stripeCheckoutUrl = null
