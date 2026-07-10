@@ -11,7 +11,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { api, type HotelInfoDto, type ReviewDto, type HotelPriceDto, type RoomDto, type RoomPriceDto } from "@/lib/api";
 import { showApiError, showSuccess } from "@/lib/toast";
 import { ArrowLeft, MapPin, Star, Heart, Bed, ChevronRight } from "lucide-react";
-import { getImageSrc } from "@/lib/imageUtils";
+import { getImageSrc, DEFAULT_HOTEL_IMAGE } from "@/lib/imageUtils";
 import { RoomDetailModal } from "@/components/RoomDetailModal";
 
 export default function HotelDetailPage() {
@@ -258,7 +258,8 @@ export default function HotelDetailPage() {
                     className="absolute inset-0 w-full h-full object-cover"
                     onError={(e) => {
                       const el = e.target as HTMLImageElement;
-                      el.style.display = "none";
+                      el.onerror = null;
+                      el.src = DEFAULT_HOTEL_IMAGE;
                     }}
                   />
                 </div>
@@ -278,6 +279,11 @@ export default function HotelDetailPage() {
                           src={getImageSrc(url)}
                           alt={`${hotel.name} ${i + 1}`}
                           className="w-24 h-20 object-cover"
+                          onError={(e) => {
+                            const el = e.target as HTMLImageElement;
+                            el.onerror = null;
+                            el.src = DEFAULT_HOTEL_IMAGE;
+                          }}
                         />
                       </button>
                     ))}
