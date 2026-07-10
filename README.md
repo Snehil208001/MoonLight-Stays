@@ -82,6 +82,7 @@
 | **Reviews & Ratings** | Add and view hotel reviews with star ratings |
 | **Favorites** | Save hotels for later with persistent storage |
 | **My Bookings** | View, filter, and cancel bookings with status tracking |
+| **AI Trip Planner** | Personalised, day-by-day travel itineraries based on destination, dates, guests, interests, and budget powered by Google Gemini API |
 
 ### For Hotel Managers 🏨
 
@@ -103,10 +104,12 @@
 | **Frosted Glassmorphism** | Custom Composables styled with semi-transparent overlays, neon gradient strokes, and radial glow rings |
 | **Fluid Navigation** | Seamless transition slides, state-dependent color transformations, and animated visibilities |
 | **Local Settings & Flags** | SharedPreferences session caching and dynamic environment selection |
+| **AI Trip Planner** | Native Jetpack Compose screen to input destination city, dates, budget, and interests to generate a structured travel itinerary |
 
 ### Technical Features ⚙️
 
 - **Strategy Design Pattern** — Handles complex, dynamic room pricing (surge, holiday, occupancy-based)
+- **Google Gemini AI Integration** — Generates structured JSON itineraries using Gemini model responses constrained by JSON Schema
 - **JWT Authentication** — Secure auth with refresh token rotation
 - **Stripe Webhooks** — Server-side payment confirmation
 - **CORS & Proxy** — Next.js rewrites proxy API calls to avoid mixed-content issues
@@ -126,6 +129,7 @@
 | **Spring Security** | JWT auth, role-based access |
 | **PostgreSQL** | Relational database |
 | **Stripe Java SDK** | Payment processing |
+| **Google Gemini API** | AI-driven travel planning & Structured JSON generation |
 | **SpringDoc OpenAPI** | Swagger/OpenAPI documentation |
 
 ### Frontend
@@ -147,6 +151,7 @@
 | **Jetpack Compose** | Declarative UI framework |
 | **Hilt (Dagger)** | Dependency Injection |
 | **Retrofit / OkHttp** | Network HTTP client |
+| **Jetpack Compose Navigation** | Clean navigation between Dashboard and AI Trip Planner |
 | **State-Hoisted ViewModels** | Clean reactive MVI/MVVM design |
 
 ### DevOps & Deployment
@@ -461,6 +466,7 @@ Push to `main` — the [azure-deploy.yml](./.github/workflows/azure-deploy.yml) 
 | **Auth** | `POST /auth/signup`, `POST /auth/login`, `POST /auth/refresh` |
 | **Hotels** | `POST /hotels/search`, `GET /hotels/{id}/info` |
 | **Bookings** | `POST /bookings/init`, `POST /bookings/{id}/payments` |
+| **AI (Trip Planner)** | `POST /ai/trip-plan` (requires JWT authentication) |
 | **Admin** | `POST /admin/hotels`, `GET /admin/hotels`, `PATCH /admin/hotels/{id}/surge` |
 
 ### 📖 Swagger API Documentation

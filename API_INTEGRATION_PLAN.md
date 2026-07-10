@@ -13,6 +13,7 @@ Complete plan to integrate all backend APIs with the frontend.
 | Bookings | ✅ All | - | Bookings page, BookingModal |
 | Reviews | ✅ All | - | Hotel Detail |
 | User | ✅ All | - | Profile, Favorites |
+| AI Trip Planner | ✅ All | - | TripPlanner page, AI itinerary generation |
 | Hotel Admin | ✅ All | - | Admin page |
 | Room Admin | ✅ All | - | Admin page |
 | Promo | ✅ createPromo | - | Admin page |
@@ -163,6 +164,7 @@ Backend `HotelSearchRequest` also supports:
 | DELETE /admin/hotels/{id}/rooms/{roomId} | api.deleteRoom | ✅ |
 | POST /admin/promocodes | api.createPromoCode | ✅ |
 | POST /upload/image | api.uploadImage | ✅ |
+| POST /ai/trip-plan | api.generateTripPlan | ✅ |
 
 ---
 

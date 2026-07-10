@@ -96,6 +96,12 @@ Complete catalog of REST endpoints exposed by the primary backend (`airBnbApp/`,
 | 43 | POST | `/upload/image` | Bearer | multipart form, part name `file` | `{url: "/images/<name>"}` — served under `/images/**` |
 | 44 | POST | `/webhooks/payment` | Stripe signature | Stripe event payload | Server-to-server only (Stripe → backend); not a client API |
 
+## AI (Trip Planner) — `TripPlannerController` (`/ai`)
+
+| # | Method | Path | Auth | Request | Response (`data`) |
+|---|---|---|---|---|---|
+| 45 | POST | `/ai/trip-plan` | Bearer | `TripPlanRequest {city, checkInDate?, checkOutDate?, numberOfGuests?, interests[], budgetLevel?, hotelId?}` | `TripPlanResponse {destination, summary, days[], tips[]}` |
+
 ## Android integration map
 
 All client-relevant endpoints are integrated in `app/src/main/java/com/snehil/moon_stays_androidapp/`:
@@ -106,6 +112,7 @@ All client-relevant endpoints are integrated in `app/src/main/java/com/snehil/mo
 | 7, 9–13, 25–26 | `data/remote/HotelApiService.kt` | `HotelRepositoryImpl` | `SearchHotelsUseCase`, `GetHotelInfoUseCase`, `GetReviewsUseCase`, `AddReviewUseCase`, `GetActivePromoCodesUseCase`, `ValidatePromoCodeUseCase` |
 | 14–19 | `data/remote/BookingApiService.kt` | `BookingRepositoryImpl` | `BookRoomUseCase`, `GetMyBookingsUseCase`, `CancelBookingUseCase` |
 | 27–43 | `data/remote/AdminApiService.kt` | `AdminRepositoryImpl` | `UploadImageUseCase` |
+| 45 | `data/remote/AiApiService.kt` | `TripPlannerRepositoryImpl` | `GenerateTripPlanUseCase` |
 
 Notes:
 - Token refresh (#4) runs transparently: `SessionCookieJar` keeps the httpOnly `refreshToken` cookie from login, and `TokenAuthenticator` (`core/common/`) calls `/auth/refresh` on any 401 and retries the request once. If refresh fails, `AuthInterceptor` clears the session.
