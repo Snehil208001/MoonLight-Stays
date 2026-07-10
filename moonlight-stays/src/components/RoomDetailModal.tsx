@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Bed, Users, Wifi } from "lucide-react";
-import { getImageSrc, DEFAULT_ROOM_IMAGE } from "@/lib/imageUtils";
+import { getImageSrc } from "@/lib/imageUtils";
 import type { RoomDto } from "@/lib/api";
 
 interface RoomDetailModalProps {
@@ -69,13 +69,12 @@ export function RoomDetailModal({
                 <div className="relative w-full h-48 sm:h-56 bg-white/5 rounded-t-2xl overflow-hidden">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={getImageSrc(photos[selectedPhotoIndex], 'room')}
+                    src={getImageSrc(photos[selectedPhotoIndex])}
                     alt={`${room.types} ${selectedPhotoIndex + 1}`}
                     className="w-full h-full object-cover"
                     onError={(e) => {
                       const el = e.target as HTMLImageElement;
-                      el.onerror = null;
-                      el.src = DEFAULT_ROOM_IMAGE;
+                      el.style.display = "none";
                     }}
                   />
                 </div>
@@ -92,14 +91,9 @@ export function RoomDetailModal({
                       >
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
-                          src={getImageSrc(url, 'room')}
+                          src={getImageSrc(url)}
                           alt={`${room.types} ${i + 1}`}
                           className="w-20 h-16 object-cover"
-                          onError={(e) => {
-                            const el = e.target as HTMLImageElement;
-                            el.onerror = null;
-                            el.src = DEFAULT_ROOM_IMAGE;
-                          }}
                         />
                       </button>
                     ))}

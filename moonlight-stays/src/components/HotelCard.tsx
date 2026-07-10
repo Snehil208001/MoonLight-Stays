@@ -4,7 +4,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { MapPin, Zap, Heart } from "lucide-react";
 import type { HotelPriceDto } from "@/lib/api";
-import { getFirstImageSrc, DEFAULT_HOTEL_IMAGE } from "@/lib/imageUtils";
+import { getFirstImageSrc } from "@/lib/imageUtils";
 
 interface HotelCardProps {
   hotel: HotelPriceDto;
@@ -46,9 +46,7 @@ export function HotelCard({ hotel, onBook, searchParams, isFavorite, onToggleFav
               alt={hotel.hotel.name}
               className="absolute inset-0 w-full h-full object-cover object-center transition-transform hover:scale-105"
               onError={(e) => {
-                const el = e.target as HTMLImageElement;
-                el.onerror = null;
-                el.src = DEFAULT_HOTEL_IMAGE;
+                (e.target as HTMLImageElement).style.display = "none";
               }}
             />
           ) : (
