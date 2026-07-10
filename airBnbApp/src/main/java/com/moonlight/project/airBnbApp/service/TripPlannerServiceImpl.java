@@ -86,7 +86,7 @@ public class TripPlannerServiceImpl implements TripPlannerService {
                     .body(Map.class);
         } catch (Exception e) {
             log.error("Gemini API call failed: {}", e.getMessage());
-            throw new IllegalStateException("The AI trip planner is temporarily unavailable. Please try again shortly.");
+            throw new IllegalStateException("Gemini API call failed: " + e.getMessage());
         }
 
         try {
