@@ -4,6 +4,8 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -78,14 +80,14 @@ fun DashboardScreen(
                 "Explore" -> ExploreTabContent(viewModel, onNavigateToHotelDetail)
                 "Favorites" -> FavoritesTabContent(viewModel, onNavigateToHotelDetail)
                 "Bookings" -> BookingsTabContent(viewModel)
-                "Profile" -> ProfileTabContent(viewModel, onLogout)
+                "Profile" -> ProfileTabContent(viewModel, onLogout, onNavigateToTab = { activeTab = it })
             }
         }
     }
 }
 
 @Composable
-fun DashboardTopBar(activeTab: String, onTripPlannerClick: () -> Unit = {}) {
+fun DashboardTopBar(activeTab: String, onTripPlannerClick: (() -> Unit)? = null) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -127,21 +129,24 @@ fun DashboardTopBar(activeTab: String, onTripPlannerClick: () -> Unit = {}) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .clickable(onClick = onTripPlannerClick)
-                    .background(Color(0x14FFFFFF), CircleShape)
-                    .border(1.dp, Color(0x1AFFFFFF), CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.AutoAwesome,
-                    contentDescription = "AI Trip Planner",
-                    tint = MoonPrimaryFixedDim,
-                    modifier = Modifier.size(20.dp)
-                )
+            // AI Trip Planner is a guest-only feature — only shown when a handler is provided
+            if (onTripPlannerClick != null) {
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .clickable(onClick = onTripPlannerClick)
+                        .background(Color(0x14FFFFFF), CircleShape)
+                        .border(1.dp, Color(0x1AFFFFFF), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.AutoAwesome,
+                        contentDescription = "AI Trip Planner",
+                        tint = MoonPrimaryFixedDim,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
             }
             Box(
                 modifier = Modifier
@@ -172,15 +177,9 @@ fun ExploreTabContent(
     val checkOutDate by viewModel.checkOutDate.collectAsState()
     val roomsCount by viewModel.roomsCount.collectAsState()
     val selectedRoomType by viewModel.selectedRoomType.collectAsState()
-    val promoCode by viewModel.promoCode.collectAsState()
-    val promoDiscount by viewModel.promoDiscount.collectAsState()
-    val promoError by viewModel.promoError.collectAsState()
-    val isPromoLoading by viewModel.isPromoLoading.collectAsState()
     val hotels by viewModel.hotels.collectAsState()
     val favoriteIds by viewModel.favoriteIds.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
-
-    var promoInput by remember { mutableStateOf("") }
 
     var showCheckInPicker by remember { mutableStateOf(false) }
     var showCheckOutPicker by remember { mutableStateOf(false) }
@@ -413,57 +412,6 @@ fun ExploreTabContent(
             }
         }
 
-        // Promo Codes segment
-        item {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Promo Codes", color = MoonPrimary, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    OutlinedTextField(
-                        value = promoInput,
-                        onValueChange = { promoInput = it },
-                        placeholder = { Text("Enter Code (e.g. LUNAR25)", color = MoonOnSurfaceVariant.copy(0.4f), fontSize = 12.sp) },
-                        modifier = Modifier.weight(1f).height(50.dp),
-                        singleLine = true,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MoonPrimaryFixedDim,
-                            unfocusedBorderColor = Color(0x1AFFFFFF),
-                            focusedTextColor = MoonPrimary,
-                            unfocusedTextColor = MoonPrimary
-                        )
-                    )
-                    Button(
-                        onClick = { viewModel.applyPromoCode(promoInput) },
-                        enabled = promoInput.isNotBlank() && !isPromoLoading,
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0x14FFFFFF)),
-                        modifier = Modifier.height(46.dp)
-                    ) {
-                        if (isPromoLoading) {
-                            CircularProgressIndicator(modifier = Modifier.size(18.dp), color = MoonPrimary, strokeWidth = 2.dp)
-                        } else {
-                            Text("Apply", color = MoonPrimary)
-                        }
-                    }
-                }
-                if (promoDiscount != null) {
-                    Text(
-                        text = "Promo applied: $promoDiscount% off base prices!",
-                        color = Color(0xFF00E479),
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                } else if (promoError != null) {
-                    Text(
-                        text = promoError!!,
-                        color = Color.Red,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-            }
-        }
 
         // Hotels Grid List
         if (hotels.isEmpty()) {
@@ -1078,7 +1026,8 @@ private fun BookingDetailRow(label: String, value: String) {
 @Composable
 fun ProfileTabContent(
     viewModel: DashboardViewModel,
-    onLogout: () -> Unit
+    onLogout: () -> Unit,
+    onNavigateToTab: (String) -> Unit = {}
 ) {
     val userName by viewModel.userName.collectAsState()
     val userEmail by viewModel.userEmail.collectAsState()
@@ -1086,9 +1035,13 @@ fun ProfileTabContent(
     var showEditDialog by remember { mutableStateOf(false) }
     var nameInput by remember { mutableStateOf("") }
 
+    // Refresh from the backend whenever the Profile tab is shown
+    LaunchedEffect(Unit) { viewModel.fetchUserProfile() }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(20.dp)
@@ -1107,8 +1060,15 @@ fun ProfileTabContent(
         }
 
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(userName, color = MoonPrimary, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-            Text(userEmail, color = MoonOnSurfaceVariant, fontSize = 14.sp)
+            Text(
+                userName.ifBlank { "Guest" },
+                color = MoonPrimary,
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold
+            )
+            if (userEmail.isNotBlank()) {
+                Text(userEmail, color = MoonOnSurfaceVariant, fontSize = 14.sp)
+            }
         }
 
         val isManager = viewModel.isHotelManager
@@ -1181,6 +1141,18 @@ fun ProfileTabContent(
             )
         }
 
+        // Quick links to the guest's own collections
+        ProfileLinkButton(
+            icon = Icons.Default.FavoriteBorder,
+            label = "View Favorites",
+            onClick = { onNavigateToTab("Favorites") }
+        )
+        ProfileLinkButton(
+            icon = Icons.Default.ReceiptLong,
+            label = "My Bookings",
+            onClick = { onNavigateToTab("Bookings") }
+        )
+
         Spacer(modifier = Modifier.height(24.dp))
 
         // Manager mode is only offered to accounts the backend marked as HOTEL_MANAGER
@@ -1222,6 +1194,33 @@ fun ProfileTabContent(
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("Sign Out", color = MoonPrimary, fontWeight = FontWeight.Bold)
             }
+        }
+    }
+}
+
+@Composable
+private fun ProfileLinkButton(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    onClick: () -> Unit
+) {
+    Button(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth().height(48.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = Color(0x1AFFFFFF),
+            contentColor = MoonPrimary
+        ),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Icon(icon, null, tint = MoonPrimaryFixedDim)
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(label, color = MoonPrimary)
         }
     }
 }

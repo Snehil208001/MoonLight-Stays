@@ -237,10 +237,10 @@ class DashboardViewModel @Inject constructor(
         initialValue = emptyList()
     )
 
-    private val _userName = MutableStateFlow(authRepository.getUserName() ?: "Voyager")
+    private val _userName = MutableStateFlow(authRepository.getUserName() ?: "")
     val userName: StateFlow<String> = _userName.asStateFlow()
 
-    private val _userEmail = MutableStateFlow(authRepository.getUserEmail() ?: "voyager@celestial.com")
+    private val _userEmail = MutableStateFlow(authRepository.getUserEmail() ?: "")
     val userEmail: StateFlow<String> = _userEmail.asStateFlow()
 
     // Current user's id, used e.g. to tell whether they already reviewed a hotel.

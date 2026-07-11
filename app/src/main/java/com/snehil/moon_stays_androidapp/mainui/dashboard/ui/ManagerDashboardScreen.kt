@@ -4,6 +4,8 @@ import android.app.DatePickerDialog
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -965,9 +967,13 @@ fun ManagerProfileTab(
     var showEditDialog by remember { mutableStateOf(false) }
     var nameInput by remember { mutableStateOf("") }
 
+    // Refresh from the backend whenever the Profile tab is shown
+    LaunchedEffect(Unit) { viewModel.fetchUserProfile() }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(20.dp)
@@ -985,8 +991,15 @@ fun ManagerProfileTab(
         }
 
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(userName, color = MoonPrimary, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-            Text(userEmail, color = MoonOnSurfaceVariant, fontSize = 14.sp)
+            Text(
+                userName.ifBlank { "Manager" },
+                color = MoonPrimary,
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold
+            )
+            if (userEmail.isNotBlank()) {
+                Text(userEmail, color = MoonOnSurfaceVariant, fontSize = 14.sp)
+            }
         }
 
         Box(
