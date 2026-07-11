@@ -68,7 +68,8 @@ fun DashboardScreen(
         },
         modifier = modifier
             .fillMaxSize()
-            .background(MoonSurface),
+            .background(MoonSurface)
+            .imePadding(),
         containerColor = MoonSurface
     ) { innerPadding ->
         Box(
@@ -1072,20 +1073,6 @@ fun ProfileTabContent(
         }
 
         val isManager = viewModel.isHotelManager
-
-        Box(
-            modifier = Modifier
-                .background(Color(0x14FFFFFF), RoundedCornerShape(12.dp))
-                .border(1.dp, Color(0x1AFFFFFF), RoundedCornerShape(12.dp))
-                .padding(vertical = 4.dp, horizontal = 12.dp)
-        ) {
-            Text(
-                if (isManager) "ROLE: HOTEL MANAGER" else "ROLE: GUEST",
-                color = MoonPrimaryFixedDim,
-                fontSize = 10.sp,
-                fontWeight = FontWeight.Bold
-            )
-        }
 
         Button(
             onClick = {

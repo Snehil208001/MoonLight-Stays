@@ -130,7 +130,8 @@ fun HotelDetailScreen(
         },
         modifier = modifier
             .fillMaxSize()
-            .background(MoonSurface),
+            .background(MoonSurface)
+            .imePadding(),
         containerColor = MoonSurface
     ) { innerPadding ->
         if (hotel == null) {

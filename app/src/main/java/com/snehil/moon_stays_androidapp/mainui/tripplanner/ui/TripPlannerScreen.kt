@@ -56,7 +56,7 @@ fun TripPlannerScreen(
 
     Scaffold(
         containerColor = MoonSurface,
-        modifier = modifier.fillMaxSize(),
+        modifier = modifier.fillMaxSize().imePadding(),
         topBar = {
             Row(
                 modifier = Modifier
