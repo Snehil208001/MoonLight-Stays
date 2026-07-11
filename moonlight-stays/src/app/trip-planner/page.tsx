@@ -33,6 +33,18 @@ export default function TripPlannerPage() {
   const [loading, setLoading] = useState(false);
   const [plan, setPlan] = useState<TripPlanResponse | null>(null);
 
+  const today = new Date().toISOString().slice(0, 10);
+
+  const handleCheckInChange = (value: string) => {
+    setCheckInDate(value);
+    // Keep check-out strictly after check-in
+    if (value && checkOutDate && checkOutDate <= value) {
+      const next = new Date(value);
+      next.setDate(next.getDate() + 1);
+      setCheckOutDate(next.toISOString().slice(0, 10));
+    }
+  };
+
   const toggleInterest = (value: string) => {
     setInterests((prev) =>
       prev.includes(value) ? prev.filter((i) => i !== value) : [...prev, value]
@@ -102,7 +114,8 @@ export default function TripPlannerPage() {
                 <input
                   type="date"
                   value={checkInDate}
-                  onChange={(e) => setCheckInDate(e.target.value)}
+                  min={today}
+                  onChange={(e) => handleCheckInChange(e.target.value)}
                   className="w-full px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-[#00FFFF]/50"
                 />
               </div>
@@ -111,6 +124,7 @@ export default function TripPlannerPage() {
                 <input
                   type="date"
                   value={checkOutDate}
+                  min={checkInDate || today}
                   onChange={(e) => setCheckOutDate(e.target.value)}
                   className="w-full px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-[#00FFFF]/50"
                 />

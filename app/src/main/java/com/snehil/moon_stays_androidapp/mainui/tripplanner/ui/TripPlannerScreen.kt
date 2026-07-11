@@ -2,6 +2,7 @@ package com.snehil.moon_stays_androidapp.mainui.tripplanner.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -10,12 +11,14 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -48,6 +51,8 @@ fun TripPlannerScreen(
     var guests by remember { mutableStateOf("2") }
     var budget by remember { mutableStateOf("MODERATE") }
     val interests = remember { mutableStateListOf<String>() }
+    var showCheckInPicker by remember { mutableStateOf(false) }
+    var showCheckOutPicker by remember { mutableStateOf(false) }
 
     Scaffold(
         containerColor = MoonSurface,
@@ -97,13 +102,17 @@ fun TripPlannerScreen(
             GlassField(value = city, onValueChange = { city = it }, label = "Destination city", placeholder = "e.g. Jaipur")
 
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                GlassField(
-                    value = checkIn, onValueChange = { checkIn = it },
-                    label = "Check-in", placeholder = "YYYY-MM-DD", modifier = Modifier.weight(1f)
+                GlassDateField(
+                    value = checkIn,
+                    label = "Check-in",
+                    onClick = { showCheckInPicker = true },
+                    modifier = Modifier.weight(1f)
                 )
-                GlassField(
-                    value = checkOut, onValueChange = { checkOut = it },
-                    label = "Check-out", placeholder = "YYYY-MM-DD", modifier = Modifier.weight(1f)
+                GlassDateField(
+                    value = checkOut,
+                    label = "Check-out",
+                    onClick = { showCheckOutPicker = true },
+                    modifier = Modifier.weight(1f)
                 )
             }
 
@@ -252,6 +261,39 @@ fun TripPlannerScreen(
             Spacer(Modifier.height(Spacing.lg))
         }
     }
+
+    // Check-in date picker (today onwards)
+    if (showCheckInPicker) {
+        MoonDatePickerDialog(
+            initialDateIso = checkIn,
+            minDateIso = java.time.LocalDate.now().toString(),
+            onDateSelected = { selected ->
+                checkIn = selected
+                // Keep check-out strictly after check-in when one is already set
+                val ci = try { java.time.LocalDate.parse(selected) } catch (e: Exception) { null }
+                val co = try { java.time.LocalDate.parse(checkOut) } catch (e: Exception) { null }
+                if (ci != null && co != null && !co.isAfter(ci)) {
+                    checkOut = ci.plusDays(1).toString()
+                }
+            },
+            onDismiss = { showCheckInPicker = false }
+        )
+    }
+
+    // Check-out date picker (must be after check-in)
+    if (showCheckOutPicker) {
+        val minCheckOut = try {
+            java.time.LocalDate.parse(checkIn).plusDays(1).toString()
+        } catch (e: Exception) {
+            java.time.LocalDate.now().plusDays(1).toString()
+        }
+        MoonDatePickerDialog(
+            initialDateIso = if (checkOut >= minCheckOut) checkOut else minCheckOut,
+            minDateIso = minCheckOut,
+            onDateSelected = { checkOut = it },
+            onDismiss = { showCheckOutPicker = false }
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -285,6 +327,93 @@ private fun GlassField(
             unfocusedContainerColor = GlassSurface
         )
     )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun GlassDateField(
+    value: String,
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(modifier = modifier) {
+        OutlinedTextField(
+            value = value,
+            onValueChange = { },
+            label = { Text(label) },
+            placeholder = { Text("YYYY-MM-DD") },
+            leadingIcon = { Icon(Icons.Default.DateRange, contentDescription = null, tint = TextMuted) },
+            singleLine = true,
+            enabled = false,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(Radii.md),
+            colors = OutlinedTextFieldDefaults.colors(
+                disabledTextColor = MoonPrimary,
+                disabledBorderColor = GlassBorder,
+                disabledLabelColor = TextMuted,
+                disabledPlaceholderColor = TextMuted,
+                disabledLeadingIconColor = TextMuted,
+                disabledContainerColor = GlassSurface
+            )
+        )
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .clip(RoundedCornerShape(Radii.md))
+                .clickable(onClick = onClick)
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun MoonDatePickerDialog(
+    initialDateIso: String,
+    minDateIso: String?,
+    onDateSelected: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    fun isoToUtcMillis(iso: String): Long? = try {
+        java.time.LocalDate.parse(iso)
+            .atStartOfDay(java.time.ZoneOffset.UTC)
+            .toInstant()
+            .toEpochMilli()
+    } catch (e: Exception) {
+        null
+    }
+
+    val minMillis = remember(minDateIso) { minDateIso?.let { isoToUtcMillis(it) } }
+    val datePickerState = rememberDatePickerState(
+        initialSelectedDateMillis = isoToUtcMillis(initialDateIso)
+            ?: System.currentTimeMillis(),
+        selectableDates = object : SelectableDates {
+            override fun isSelectableDate(utcTimeMillis: Long): Boolean {
+                return minMillis == null || utcTimeMillis >= minMillis
+            }
+        }
+    )
+
+    DatePickerDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(onClick = {
+                datePickerState.selectedDateMillis?.let { millis ->
+                    val iso = java.time.Instant.ofEpochMilli(millis)
+                        .atZone(java.time.ZoneOffset.UTC)
+                        .toLocalDate()
+                        .toString()
+                    onDateSelected(iso)
+                }
+                onDismiss()
+            }) { Text("OK", color = AccentCyan, fontWeight = FontWeight.Bold) }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel", color = TextSecondary) }
+        }
+    ) {
+        DatePicker(state = datePickerState)
+    }
 }
 
 @Composable

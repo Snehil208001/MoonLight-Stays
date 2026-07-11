@@ -52,7 +52,7 @@ public class TripPlannerServiceImplTest {
                 hotelService,
                 objectMapper,
                 "dummy-api-key",
-                "gemini-2.0-flash",
+                "gemini-3.5-flash",
                 "https://generativelanguage.googleapis.com/v1beta"
         );
         ReflectionTestUtils.setField(tripPlannerService, "restClient", restClient);
