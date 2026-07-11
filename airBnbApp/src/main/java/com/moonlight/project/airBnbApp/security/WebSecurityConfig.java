@@ -75,7 +75,7 @@ public class WebSecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/admin/**").hasRole("HOTEL_MANAGER")
                         .requestMatchers("/bookings/**").authenticated()
-                        .requestMatchers("/ai/**").permitAll() // AI trip planner is public (no sign-in required)
+                        .requestMatchers("/ai/**").authenticated() // AI trip planner requires sign-in
                         .requestMatchers(HttpMethod.POST, "/hotels/*/reviews").authenticated()
                         .requestMatchers("/users/**").authenticated()
                         .requestMatchers("/auth/**").permitAll()
