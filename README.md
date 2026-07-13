@@ -28,6 +28,7 @@
 - [About the Project](#-about-the-project)
 - [Live Demo](#-live-demo)
 - [Features](#-features)
+- [Gemini AI Trip Planner](#-gemini-ai-trip-planner)
 - [Tech Stack](#-tech-stack)
 - [Architecture & System Design](#-architecture--cloud-infrastructure)
 - [Android Client Architecture](#-android-client-architecture)
@@ -114,6 +115,42 @@
 - **Stripe Webhooks** — Server-side payment confirmation
 - **CORS & Proxy** — Next.js rewrites proxy API calls to avoid mixed-content issues
 - **Responsive UI** — Dark-mode glassmorphism design with Framer Motion animations
+
+---
+
+## 🤖 Gemini AI Trip Planner
+
+The **Moonlight Stays AI Trip Planner** is a key feature powered by the **Google Gemini API** (`gemini-3.5-flash`), integrated into both the web frontend and native Android client. It provides structured, day-by-day travel itineraries customized to the user's specific travel plans.
+
+### 🌟 Key Capabilities
+- **Structured JSON Schema Constraints:** Uses Gemini's schema constraint API to guarantee the response matches our frontend and mobile models ([TripPlanResponse](file:///c:/Users/snehi/OneDrive/Desktop/AirBnb_BackEnd/airBnbApp/src/main/java/com/moonlight/project/airBnbApp/dto/TripPlanResponse.java)) exactly, preventing parsing failures.
+- **Personalized Contexts:** Incorporates traveller interests (e.g., food, history, adventure), travel dates, guest count, and budget levels.
+- **Moonlight Stays Hotel Anchoring:** If a guest books or plans a trip around a specific Moonlight Stays property, the itinerary dynamically integrates the hotel's amenities, location, and address to anchor the daily activities.
+- **Secure JWT Authentication:** AI endpoint requests are fully authenticated via JWT (JSON Web Tokens), securing the underlying Gemini API key and preventing unauthorized use.
+
+### 🔌 API Endpoint
+- `POST /api/v1/ai/trip-plan`
+  - **Request:** [TripPlanRequest](file:///c:/Users/snehi/OneDrive/Desktop/AirBnb_BackEnd/airBnbApp/src/main/java/com/moonlight/project/airBnbApp/dto/TripPlanRequest.java) (city, checkInDate, checkOutDate, numberOfGuests, budgetLevel, interests, hotelId)
+  - **Response:** [TripPlanResponse](file:///c:/Users/snehi/OneDrive/Desktop/AirBnb_BackEnd/airBnbApp/src/main/java/com/moonlight/project/airBnbApp/dto/TripPlanResponse.java) (destination, summary, days, tips)
+
+### 📸 AI Trip Planner Flow
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Guest as Guest User
+    participant App as Web / Android App
+    participant BE as Spring Boot Backend
+    participant Gemini as Google Gemini API
+
+    Guest->>App: Input Destination, Dates, Budget & Interests
+    App->>BE: POST /api/v1/ai/trip-plan (with JWT Auth)
+    Note over BE: Enrich with Hotel Context (if hotelId provided)
+    BE->>Gemini: POST /models/gemini-3.5-flash:generateContent
+    Note over Gemini: Run schema-constrained generation
+    Gemini-->>BE: Return Valid Structured JSON
+    BE-->>App: Parse & Return TripPlanResponse
+    App->>Guest: Render Day-by-Day Itinerary & Local Tips
+```
 
 ---
 
